@@ -21,7 +21,7 @@ follows the native semantics wherever pure Python can.  Known deviations:
     exact table runs the resolver (functools._find_impl).
   * Hardening record types (immutable type, no subclassing, no
     object.__new__) uses ctypes; without it those bypasses stay open.
-  * copy.replace exists only on 3.13+; __replace__ works everywhere.
+  * copy.replace exists only on 3.13+; grail.replace works everywhere.
 
 It adds Python-level overhead the native runtime does not have, so timings
 taken with it say nothing about Grail performance.
@@ -80,7 +80,7 @@ def _dataclass_transform(**kwargs):
     return transform(**kwargs) if transform else (lambda func: func)
 
 backend = _core.backend
-__all__ = ["record", "field", "generic", "ops", "repr", "eq", "hash",
+__all__ = ["record", "field", "replace", "generic", "ops", "repr", "eq", "hash",
            "record_fields", "record_values", "is_value_record", "substitutable",
            "PMap", "PSet", "PVector", "FloatVector", "IntVector", "Atom"]
 
@@ -247,6 +247,17 @@ def _derive(record_type, deriving):
                 pairs += [((scalar, record_type), 2) for scalar in (float, int)]
         for pair, kind in pairs:
             generic.register(pair, make(record_type, op, kind))
+
+
+def replace(obj, /, **changes):
+    """Return a Grail record with the supplied fields replaced.
+
+    Unchanged fields are shared, and defaults and factories are not replayed.
+    """
+    cls = type(obj)
+    if not _core._is_record_type(cls):
+        raise TypeError("replace() requires a Grail record")
+    return cls.__replace__(obj, **changes)
 
 
 def record_fields(record_type):

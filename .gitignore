@@ -4,3 +4,4 @@ dist/
 uv.lock
 .mesonpy-*/
 build/
+benchmarks/michi/patterns/

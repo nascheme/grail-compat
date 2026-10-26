@@ -1,0 +1,58 @@
+[project]
+site_name = "Grail"
+site_description = "Records, generic functions and immutable state for Python"
+nav = [
+{"Home" = "index.md"},
+{"Why Grail?" = "why-grail.md"},
+{"Getting started" = "getting-started.md"},
+{"Tutorial" = [
+{"Tutorial: a small shop" = "tutorial/index.md"},
+{"1. Describe an item" = "tutorial/1-records.md"},
+{"2. Describe items with a generic" = "tutorial/2-generic-functions.md"},
+{"3. Add stock with an operator" = "tutorial/3-operators.md"},
+{"4. Store inventory snapshots" = "tutorial/4-persistent-collections.md"},
+{"5. Coordinate stock updates" = "tutorial/5-threads-and-atoms.md"}
+]},
+{"Guide" = [
+{"Declare and use records" = "guide/records.md"},
+{"Defaults and factories" = "guide/defaults.md"},
+{"Equality and hashing" = "guide/equality-and-hashing.md"},
+{"Value records and ordinary fields" = "guide/value-records.md"},
+{"Copy, replace and pickle" = "guide/copying.md"},
+{"Inspect records" = "guide/introspection.md"},
+{"Define and extend generic functions" = "guide/generic-functions.md"},
+{"Customize record protocols" = "guide/protocol-hooks.md"},
+{"Add arithmetic to records" = "guide/operators.md"},
+{"Keep collection snapshots" = "guide/persistent-collections.md"},
+{"Build collections with transients" = "guide/transients.md"},
+{"Store read-mostly numeric data" = "guide/numeric-vectors.md"},
+{"Update shared state with atoms" = "guide/atoms.md"},
+{"Share values across threads" = "guide/concurrency.md"},
+{"Port classes and dataclasses" = "guide/porting.md"}
+]},
+{"Examples" = [
+{"Worked program designs" = "examples/index.md"},
+{"Ray tracer: data and open operations" = "examples/raytrace.md"},
+{"Richards: a pure transition kernel" = "examples/richards.md"},
+{"DeltaBlue: graph IDs and batches" = "examples/deltablue.md"},
+{"Aggregate: fold privately, merge values" = "examples/aggregate.md"},
+{"Michi: immutable trees and explicit randomness" = "examples/michi.md"}
+]},
+{"Reference" = [
+{"Records reference" = "reference/records.md"},
+{"Generic functions reference" = "reference/generic.md"},
+{"Hooks and operators reference" = "reference/hooks-and-ops.md"},
+{"PMap reference" = "reference/pmap.md"},
+{"PSet reference" = "reference/pset.md"},
+{"PVector reference" = "reference/pvector.md"},
+{"Numeric vectors reference" = "reference/numeric-vectors.md"},
+{"Atom reference" = "reference/atom.md"}
+]},
+{"Backends" = "backends.md"},
+{"Background" = "background.md"},
+{"Contributing" = "contributing.md"}
+]
+
+[project.theme]
+variant = "modern"
+language = "en"

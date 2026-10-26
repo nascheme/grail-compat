@@ -5,3 +5,5 @@ uv.lock
 .mesonpy-*/
 build/
 benchmarks/michi/patterns/
+site/
+.cache/

@@ -7,7 +7,10 @@ requires-python = ">=3.10"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest"]
+dev = [
+    "pytest",
+    "zensical>=0.0.67",
+]
 
 [build-system]
 requires = ["meson-python>=0.18", "meson>=1.6"]

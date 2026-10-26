@@ -13,6 +13,25 @@ pure Python.  `grail.pds_backend` is `"native"` or `"python"`; set
 The pure-Python parts add overhead the native runtime does not have, so
 timings taken with this package say nothing about Grail performance.
 
+## Documentation
+
+Read [Why Grail?](docs/why-grail.md) for the motivation, then start with
+[Getting started](docs/getting-started.md) or the
+[shop tutorial](docs/tutorial/index.md). The [user documentation](docs/index.md)
+also includes task guides, a hand-written API reference, and benchmark
+walkthroughs.
+
+Build or preview the site from this checkout:
+
+```sh
+uv sync --group dev
+uv run zensical build --strict
+uv run zensical serve
+```
+
+Run examples with `uv run pytest --doctest-glob='*.md' docs/`.
+See [Contributing](docs/contributing.md) for checks on both backends.
+
 ## Building and testing
 
 The build uses meson-python.  A C compiler is needed on 3.14+ unless the

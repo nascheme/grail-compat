@@ -1,6 +1,6 @@
 """Copy the shared C sources and tests into a cpython-grail checkout.
 
-    python tools/sync_to_proto.py ../cpython-grail
+    python tools/sync_to_cpython_grail.py ../cpython-grail
 
 The C files land in Modules/_grail/, where Modules/Setup.stdlib.in builds
 them as the _grail_pds module.  The tests (tests/test_grail*.py), which
@@ -15,9 +15,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 C_FILES = ["grail_compat.h", "grail_hamt.h", "grail_hamt.c", "pds.c"]
-C_HEADER = ("/* Copied from grail-compat src/grail/_c/ by tools/sync_to_proto.py;"
+C_HEADER = ("/* Copied from grail-compat src/grail/_c/ by tools/sync_to_cpython_grail.py;"
             " do not edit here. */\n")
-TEST_HEADER = ("# Copied from grail-compat tests/ by tools/sync_to_proto.py;"
+TEST_HEADER = ("# Copied from grail-compat tests/ by tools/sync_to_cpython_grail.py;"
                " do not edit here.\n")
 
 

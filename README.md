@@ -71,7 +71,7 @@ module.  The same files build into the interpreter with `Py_BUILD_CORE`
 (`test_grail_native.py`, the specialization and JIT tests).  Copy both to
 the prototype with
 
-    python tools/sync_to_proto.py ../cpython-grail
+    python tools/sync_to_cpython_grail.py ../cpython-grail
 
 and do not edit the copies there.
 

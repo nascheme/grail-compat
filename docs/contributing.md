@@ -2,7 +2,7 @@
 sources:
   - grail-compat/README.md
   - grail-compat/pyproject.toml
-  - grail-compat/tools/sync_to_proto.py
+  - grail-compat/tools/sync_to_cpython_grail.py
   - grail-compat/tools/check_docs.py
   - grail-compat/zensical.toml
 ---
@@ -43,7 +43,7 @@ Shared C map/set code is edited in `src/grail/_c/`, not in prototype copies.
 From grail-compat, synchronize with:
 
 ```sh
-uv run tools/sync_to_proto.py ../cpython-grail
+uv run tools/sync_to_cpython_grail.py ../cpython-grail
 ```
 
 ## Documentation

@@ -1,7 +1,8 @@
 /* Grail's copy of CPython's HAMT.
 
-   Vendored from cpython-proto 58b6a084ae0 Python/hamt.c, which is upstream
-   CPython 3.15 (fca9deddf74) plus the Grail additions GrailHamt_AssocInPlace,
+   Vendored from cpython-proto 58b6a084ae0 Python/hamt.c, which is the
+   CPython 3.15 branch's file (last upstream change gh-155515, GC-tracked
+   iterators) plus the Grail additions GrailHamt_AssocInPlace,
    GrailHamt_FromItems and GrailHamt_IteratorInit/Next.  Changes from that file:
    symbols renamed (_PyHamt_* -> GrailHamt_*); the object and node types are
    heap types created per module (GrailHamtState) instead of static types,

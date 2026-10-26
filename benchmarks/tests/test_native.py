@@ -47,10 +47,18 @@ class NativeTests(unittest.TestCase):
     def test_rewrites_define_only_records(self):
         # hybrid.py files are earlier conversions kept as comparison controls.
         paths = sorted(BENCHMARKS.glob("*/idiomatic.py"))
-        self.assertEqual(len(paths), 19)
+        self.assertEqual(len(paths), 20)
+        paths.extend(sorted((BENCHMARKS / "sqlglot_port").glob("*.py")))
+        paths = [p for p in paths if p.name != "upstream.py"]
         for path in paths:
             for node in ast.walk(ast.parse(path.read_text())):
                 if isinstance(node, ast.ClassDef):
+                    # SQLGlot's explicit failure boundaries use exception types,
+                    # not application data or mutable AST classes.
+                    if (path.parent.name == "sqlglot_port"
+                            and node.name in ("UnsupportedError", "OptimizeError")
+                            and [ast.unparse(b) for b in node.bases] == ["ValueError"]):
+                        continue
                     names = [ast.unparse(d) for d in node.decorator_list]
                     self.assertIn("grail.record", names,
                                   f"{path.relative_to(BENCHMARKS)}: {node.name}")

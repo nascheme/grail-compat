@@ -4,6 +4,7 @@ Every benchmark directory has an idiomatic.py (and most an upstream.py), so they
 are never put on sys.path; each module gets a distinct name instead.
 """
 
+import importlib
 import importlib.util
 from pathlib import Path
 import sys
@@ -15,6 +16,10 @@ BENCHMARKS = Path(__file__).resolve().parents[1]
 
 def load_benchmark(name, file="idiomatic.py"):
     """<name>/<file> as module <name>_<stem>, registered in sys.modules."""
+    if name == "sqlglot_port" and file != "upstream.py":
+        # Sibling modules share record types through their canonical package.
+        sys.path.insert(0, str(BENCHMARKS))
+        return importlib.import_module(f"sqlglot_port.{Path(file).stem}")
     module_name = f"{name}_{Path(file).stem}"
     if module_name in sys.modules:
         return sys.modules[module_name]

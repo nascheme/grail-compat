@@ -11,6 +11,11 @@ stock CPython with this package (`grail-compat`).  Timings taken with
 grail-compat say nothing about Grail performance: it adds Python-level
 overhead the native runtime does not have.
 
+A partial SQLGlot 4.6.0 port is also included; it is not a complete library
+conversion. It requires `sqlglot==4.6.0` for adapters and differential tests
+(`uv run --with sqlglot==4.6.0 ...`); `python-dateutil` enables optional date
+folding. Pure record tests do not require SQLGlot.
+
 ## Layout
 
     <name>/idiomatic.py   the idiomatic Grail version; each has main() and a
@@ -24,6 +29,8 @@ overhead the native runtime does not have.
                           vendored challenge code and one of its graphs
     michi/fetch_patterns.py
                           downloads michi's large pattern tables (not vendored)
+    sqlglot_port/         idiomatic.py plus generate.py, simplify.py, scope.py,
+                          optimizer.py and the vendored upstream.py fixture
     tests/                correctness tests (backend-agnostic)
     LICENSES/             licences of the vendored upstream code
 
@@ -32,11 +39,14 @@ benchmark puts its directory on `sys.path`, which would shadow the `grail`
 package.  Every directory has an `idiomatic.py`, so tools load these modules by
 file path (`importlib.util.spec_from_file_location`) under distinct names
 rather than by putting several benchmark directories on `sys.path`;
-`tests/bench_support.py` does this for the tests.
+`tests/bench_support.py` does this for the tests. SQLGlot is the exception:
+its sibling modules use the canonical `sqlglot_port` package so all imports
+share the same record class identities, without shadowing upstream `sqlglot`.
 
 ## Upstream sources
 
-All vendored code is MIT licensed; see `LICENSES/`.
+All vendored code is MIT licensed; see `LICENSES/`. SQLGlot-derived algorithms
+retain the SQLGlot 4.6.0 notice in `LICENSES/sqlglot-LICENSE`.
 
 | Source | Commit | Files |
 |---|---|---|
@@ -187,6 +197,14 @@ simulation.  The kernel is a value (a record of a seven-slot `Task` record
 table, the current task and counters) advanced by the pure `kernel_step`.
 `hybrid.py` keeps the earlier kernel over local mutable lists.
 
+**sqlglot_port** - Partial SQLGlot 4.6.0 conversion: immutable expression trees,
+record-native simplification, Boolean normalization, compact SQL generation,
+acyclic scope graphs and five optimizer-tail stages. Parsing, qualification,
+projection pushdown, unnesting and dialect output remain upstream. Local
+mutable tables are scratch, not published state. The TPCH fixture is vendored
+from pyperformance's `bm_sqlglot_v2`. Run:
+`sqlglot_port/idiomatic.py '(a AND b) OR c'`.
+
 **spectral_norm** - pyperformance `bm_spectral_norm`: the power method on
 A^T A.  The vectors are shared as unboxed `FloatVector`s and rows are
 computed in parallel; returns the final square root upstream omits.
@@ -231,6 +249,11 @@ backend name and similar) skip on grail-compat.
   (comprehensions), parsed topology, propagation and complete search traces
   (hexiom; the level-36 solves run only with `HEXIOM_SLOW_TESTS=1`), and
   damage distributions, successors and value-iteration bounds (mdp).
+
+- `test_sqlglot*.py`: pure record contracts plus SQLGlot 4.6.0 differential
+  checks for adapters, simplification, generation, scope graphs and optimizer
+  stages, including the vendored TPCH fixture. Differential tests skip when
+  SQLGlot is absent; a version mismatch is an error.
 
 The other idiomatic versions are checked against `upstream.py` by the Project Grail
 measurement harness (`bench/harness/measure_<name>.py` and

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --locked
+#!/usr/bin/env python3
 """Build the static site and publish unchanged Markdown beside each HTML page."""
 
 import os

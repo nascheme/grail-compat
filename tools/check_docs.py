@@ -87,8 +87,12 @@ def main():
     files = sorted((ROOT / "docs").rglob("*.md"))
     errors = check_reference()
     failed = attempted = 0
+    design = ROOT / "docs" / "design"
     for path in files:
-        errors.extend(check_page(path, args.workspace))
+        # The design docs are copies of drafts, not user docs; their
+        # source and style rules are kept upstream.
+        if not path.is_relative_to(design):
+            errors.extend(check_page(path, args.workspace))
         if not args.no_doctest:
             result = doctest.testfile(
                 str(path), module_relative=False, encoding="utf-8",

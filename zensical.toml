@@ -50,7 +50,18 @@ nav = [
 ]},
 {"Backends" = "backends.md"},
 {"Background" = "background.md"},
-{"Contributing" = "contributing.md"}
+{"Contributing" = "contributing.md"},
+{"Design (for Grail designers)" = [
+{"Design documents" = "design/index.md"},
+{"Project Grail overview" = "design/00-project-grail-overview.md"},
+{"PEP draft: Records" = "design/01-pep-draft-records.md"},
+{"PEP draft: Generic functions" = "design/02-pep-draft-generic-functions.md"},
+{"PEP draft: Record syntax" = "design/03-pep-draft-record-syntax.md"},
+{"PEP draft: C API" = "design/04-pep-draft-c-api.md"},
+{"Design: Persistent collections" = "design/05-design-persistent-collections.md"},
+{"CPython prototype status" = "design/06-cpython-prototype.md"},
+{"Appendix: Concurrency toolkit" = "design/07-appendix-concurrency-toolkit.md"}
+]}
 ]
 
 [project.theme]

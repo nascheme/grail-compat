@@ -51,6 +51,8 @@ reference, not mutations inside arbitrary objects.
   [generic reference](reference/generic.md), and collection references for exact rules.
 - Read [backend differences](backends.md) before comparing behavior or timings.
 - Read [background](background.md) for design goals and planned work.
+- Designing Grail itself? The [design documents](design/index.md) hold the
+  overview and PEP drafts.
 
 These pages describe tested behavior, not every feature proposed by the design
 drafts. Compatibility timings are not evidence of native Grail performance.

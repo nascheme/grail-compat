@@ -164,7 +164,7 @@ These are small benchmark programs, not full-application performance promises.
 They are native-prototype measurements, not grail-compat timings. The source
 snapshot and full results are recorded in the parent workspace under
 `bench/results/20261026-111345-5c74a29e4ba/`; the prototype status report is
-`docs/design/06-cpython-prototype.md`.
+[CPython prototype status](design/06-cpython-prototype.md).
 
 ## Fewer opportunities for races
 

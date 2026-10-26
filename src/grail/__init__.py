@@ -1,8 +1,12 @@
-"""Pure-Python shim of the Project Grail API for CPython 3.10+.
+"""Compatibility implementation of the Project Grail API for CPython 3.10+.
 
 A close port of the native facade (cpython-proto/Lib/grail/__init__.py).
 The native ``_grail`` core is replaced by ``grail._core``; persistent
-collections, numeric vectors and atoms live in sibling modules.  The shim
+collections, numeric vectors and atoms live in sibling modules.  On CPython
+3.14+ PMap and PSet are the prototype's C implementation
+(``grail._pds_native``, over a copy of CPython's HAMT); elsewhere, or with
+GRAIL_PURE=1 in the environment, they are pure Python (``grail._pds``);
+``pds_backend`` says which.  The shim
 follows the native semantics wherever pure Python can.  Known deviations:
 
   * Registered operator pairs are consulted only through record operator
@@ -31,10 +35,25 @@ import typing as _typing
 from collections import namedtuple as _namedtuple
 
 from . import _core
-from ._pds import PMap, PSet
 from ._atom import Atom
 from ._vector import PVector
 from ._numvec import FloatVector, IntVector
+
+
+def _load_pds():
+    import os
+    if os.environ.get("GRAIL_PURE") != "1":
+        try:
+            from ._pds_native import PMap, PSet
+        except ImportError:
+            pass
+        else:
+            return PMap, PSet, "native"
+    from ._pds import PMap, PSet
+    return PMap, PSet, "python"
+
+
+PMap, PSet, pds_backend = _load_pds()
 
 try:
     import annotationlib as _annotationlib  # 3.14+

@@ -15,11 +15,8 @@ import threading
 import unittest
 import weakref
 
-import grail
 from grail import Atom, PMap, field, is_value_record, record
 
-SHIM = getattr(grail, "backend", "shim") == "shim"
-native_only = unittest.skipIf(SHIM, "native only")
 
 # Subprocesses keep the GIL disabled on free-threaded builds.
 GIL_ARGS = ("-X", "gil=0") if sysconfig.get_config_var("Py_GIL_DISABLED") else ()
@@ -169,35 +166,6 @@ else:
 a = Atom(2**100)
 assert a.add(1) == 1267650600228229401496703205377
 assert a.add(-1) == 2**100
-''')
-
-    @native_only
-    def test_add_allocation_failure(self):
-        try:
-            import _testcapi
-        except ImportError:
-            self.skipTest("requires _testcapi")
-        if not hasattr(_testcapi, "set_nomemory"):
-            self.skipTest("requires _testcapi.set_nomemory")
-        # Allocator hooks are process-global; never install in the test runner.
-        assert_python_ok("-c", '''
-import _testcapi
-from grail import Atom
-old = 2**200
-for delta in (1, -1, 2**400):
-    a = Atom(old)
-    add = a.add
-    failed = False
-    try:
-        _testcapi.set_nomemory(0, 1)
-        add(delta)
-    except MemoryError:
-        failed = True
-    finally:
-        _testcapi.remove_mem_hooks()
-    assert failed
-    assert a.value is old
-    assert add(delta) == old + delta
 ''')
 
     def test_swap_arguments(self):

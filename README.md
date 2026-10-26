@@ -24,9 +24,12 @@ versions build a pure-Python wheel.
     cd tests && ../.venv-3.14/bin/python -m pytest
 
 Run the tests from `tests/` so that the installed package, not `src/`, is
-imported.  They are backend-agnostic: run them with `GRAIL_PURE=1` for the
-pure-Python collections, or with a native Grail interpreter (and without
-this package on `sys.path`) to check it against the same contract.
+imported.  They are the specification of Grail's behaviour and are
+backend-agnostic: run them with `GRAIL_PURE=1` for the pure-Python
+collections, or with a native Grail interpreter (and without this package on
+`sys.path`) to check it against the same contract.  The prototype runs them
+as copies in its `Lib/test/` (see below); tests of its native internals live
+only there.
 
 Leak and sanitizer checks for the C code, with a debug CPython
 (`uv python install 3.14+debug`):
@@ -39,12 +42,15 @@ Leak and sanitizer checks for the C code, with a debug CPython
     cd tests && LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libubsan.so)" \
         ASAN_OPTIONS=detect_leaks=0 ../.venv-asan/bin/python -m pytest test_grail_pds.py test_grail_hamt.py
 
-## Sharing the C code with cpython-proto
+## Sharing code with cpython-proto
 
 `src/grail/_c/` is the single source for the prototype's `_grail_pds`
 module.  The same files build into the interpreter with `Py_BUILD_CORE`
 (module name `_grail_pds`, internal fast paths) and here as an extension
-(`grail._pds_native`).  Copy them to the prototype with
+(`grail._pds_native`).  Likewise `tests/test_grail*.py` are the prototype's
+`Lib/test/test_grail*.py`, except its native-only tests
+(`test_grail_native.py`, the specialization and JIT tests).  Copy both to
+the prototype with
 
     python tools/sync_to_proto.py ../cpython-proto
 

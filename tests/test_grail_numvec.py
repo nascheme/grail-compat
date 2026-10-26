@@ -12,16 +12,8 @@ import unittest
 
 import grail
 
-NATIVE_ONLY = unittest.skipIf(getattr(grail, "backend", "shim") == "shim", "native only")
 # Pure Python can export a buffer only through __buffer__ (3.12+).
 HAS_BUFFER_EXPORT = getattr(grail, "backend", "shim") != "shim" or sys.version_info >= (3, 12)
-
-
-def assert_python_ok(*args):
-    import subprocess
-    proc = subprocess.run([sys.executable, *args], capture_output=True, text=True, timeout=600)
-    if proc.returncode:
-        raise AssertionError(f"subprocess failed ({proc.returncode}):\n{proc.stderr}")
 
 from grail import Atom, FloatVector, IntVector, PVector
 
@@ -354,77 +346,6 @@ class VectorTests(unittest.TestCase):
                 self.assertEqual(b, a)
         n = pickle.loads(pickle.dumps(FloatVector([NAN])))
         self.assertTrue(math.isnan(n[0]))
-
-    @NATIVE_ONLY
-    def test_allocation_failure_cleanup(self):
-        # Allocator hooks are process-global: isolate them from the test runner.
-        code = '''
-import _testcapi
-from grail import FloatVector, IntVector
-
-small = FloatVector(range(10))
-large = IntVector(range(5000))
-models = [(small, list(small)), (large, list(large))]
-
-def build(v):
-    with v.mutate() as t:
-        t[5] = -5
-        t.extend(range(70))
-        t[-1] = -1
-        t.pop()
-    return t.finish()
-
-operations = [
-    lambda: build(small),
-    lambda: build(large),
-    lambda: large + large,
-    lambda: small.append(1),
-    lambda: large.set(0, -1),
-    lambda: large.pop(),
-    lambda: large[::-2],
-    lambda: FloatVector(list(range(100))),
-    lambda: IntVector(iter(range(100))),
-    lambda: small.tolist(),
-    lambda: repr(small),
-    lambda: list(reversed(small)),
-]
-for operation in operations:
-    expected = operation()
-    failures = 0
-    for position in range(40):
-        failed = False
-        result = None
-        try:
-            _testcapi.set_nomemory(position, position + 1)
-            result = operation()
-        except MemoryError:
-            failed = True
-        finally:
-            _testcapi.remove_mem_hooks()
-        failures += failed
-        if not failed:
-            assert result == expected
-        for original, model in models:
-            assert list(original) == model
-    assert failures > 0
-
-# A builder stays consistent after an operation fails.
-for position in range(40):
-    t = small.mutate()
-    try:
-        _testcapi.set_nomemory(position, position + 1)
-        for i in range(500):
-            t.append(i)
-        t.extend(range(500))
-        t.extend(list(range(500)))
-    except MemoryError:
-        pass
-    finally:
-        _testcapi.remove_mem_hooks()
-    seen = [t[i] for i in range(len(t))]
-    assert seen == list(t.finish())
-'''
-        assert_python_ok("-c", code)
 
 
 class TransientTests(unittest.TestCase):

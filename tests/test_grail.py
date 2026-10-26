@@ -800,13 +800,27 @@ class RecordTests(unittest.TestCase):
         self.assertFalse(Point(2.0) != Point(3.0))
 
     @isolated_registrations
-    def test_no_hash_cache(self):
+    def test_hash_registration_after_hashing(self):
+        # An implementation may cache hashes, but never across a change to
+        # the selected hash, including one for a nested value's type.
         Point = self.point_type()
+        @grail.record
+        class Segment:
+            start: Point
+            end: Point
         p = Point(2.0)
+        s = Segment(p, Point(3.0))
+        default = hash(s)
+        self.assertEqual(hash(s), default)
+        hash(p)
         grail.hash.register(Point, lambda p: 123)
         self.assertEqual(hash(p), 123)
+        self.assertEqual(hash(s), hash((123, 123)))
         grail.hash.override(Point, lambda p: 456)
         self.assertEqual(hash(p), 456)
+        self.assertEqual(hash(s), hash((456, 456)))
+        grail.hash.register(Segment, lambda s: 789)
+        self.assertEqual(hash(s), 789)
 
     def test_private_schema_validation(self):
         class Source:

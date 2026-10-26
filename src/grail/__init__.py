@@ -1,6 +1,6 @@
 """Compatibility implementation of the Project Grail API for CPython 3.10+.
 
-A close port of the native facade (cpython-proto/Lib/grail/__init__.py).
+A close port of the native facade (cpython-grail/Lib/grail/__init__.py).
 The native ``_grail`` core is replaced by ``grail._core``; persistent
 collections, numeric vectors and atoms live in sibling modules.  On CPython
 3.14+ PMap and PSet are the prototype's C implementation

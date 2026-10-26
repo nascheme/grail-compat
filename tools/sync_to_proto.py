@@ -1,6 +1,6 @@
-"""Copy the shared C sources and tests into a cpython-proto checkout.
+"""Copy the shared C sources and tests into a cpython-grail checkout.
 
-    python tools/sync_to_proto.py ../cpython-proto
+    python tools/sync_to_proto.py ../cpython-grail
 
 The C files land in Modules/_grail/, where Modules/Setup.stdlib.in builds
 them as the _grail_pds module.  The tests (tests/test_grail*.py), which

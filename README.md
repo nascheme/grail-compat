@@ -42,7 +42,7 @@ Leak and sanitizer checks for the C code, with a debug CPython
     cd tests && LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libubsan.so)" \
         ASAN_OPTIONS=detect_leaks=0 ../.venv-asan/bin/python -m pytest test_grail_pds.py test_grail_hamt.py
 
-## Sharing code with cpython-proto
+## Sharing code with cpython-grail
 
 `src/grail/_c/` is the single source for the prototype's `_grail_pds`
 module.  The same files build into the interpreter with `Py_BUILD_CORE`
@@ -52,7 +52,7 @@ module.  The same files build into the interpreter with `Py_BUILD_CORE`
 (`test_grail_native.py`, the specialization and JIT tests).  Copy both to
 the prototype with
 
-    python tools/sync_to_proto.py ../cpython-proto
+    python tools/sync_to_proto.py ../cpython-grail
 
 and do not edit the copies there.
 

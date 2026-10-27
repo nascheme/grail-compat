@@ -60,7 +60,7 @@ the next snapshot as the mutable original assigns to its objects:
     return grail.finish(s)
 
 It produces the same trace and counters. On the native backend it runs
-about 1.3x slower than the `replace` version: finishing builds the same
+about 1.2x slower than the `replace` version: finishing builds the same
 records, and every edit also goes through a draft.
 
 ## What not to parallelize

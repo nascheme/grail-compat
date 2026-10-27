@@ -21,27 +21,30 @@ The prototype tests whether Grail's object model is practical in CPython's free-
 | JIT (GIL build) | Record construction, registered operators and generic calls are traced in tier 2 instead of ending traces. A constant record type needs no callable guard and gives an exactly typed result. Dispatch with known argument types is folded into a trace constant. Registration and override invalidate dependent executors. |
 | Experimental | `deriving` element-wise `+ - * /` for all-float records as C kernels; not used by the benchmarks (see below) |
 
-Exact semantics, runtime contracts and experiment switches are in `docs/implementation/cpython-runtime.md`; measurements are under `bench/notes/`. The matched results reported below are in `bench/results/20261026-111345-5c74a29e4ba/`.
+Exact semantics, runtime contracts and experiment switches are in `docs/implementation/cpython-runtime.md`; measurements are under `bench/notes/`. The matched results reported below are in `bench/results/20261026-190732-ea2e47369fa-klonk-c21-fast/`.
 
 Records are shallowly immutable; an ordinary field may still contain a mutable object. **Conforming value records provide the stronger guarantee** used to skip deepcopy and reduce reference-count traffic when shared through closures. Persistent collections do not yet propagate typed value-conformance evidence.
 
 ## Rough performance
 
-These figures come from a matched PGO/LTO run (clang-19, three rounds) of prototype commit `5c74a29e4ba` on a **6-core, 12-thread Ryzen 5 2600X**, with both interpreters built the same way. They are wall-time indications, not precise speedup claims; changes under about 5% are noise.
+These figures come from a matched PGO/LTO run of cpython-grail `ea2e47369fa` against upstream, both built with clang 21 and the tail-call interpreter, on an **i7-14700K using 8 performance cores** (one thread per core). Each variant ran in a fresh process with fixed work, two rounds. They are wall-time indications, not precise speedup claims; changes under about 5% are noise, and the 8-thread figures varied by up to 40% between rounds for ray tracing and float.
 
-The first two columns compare the **Grail rewrite against the upstream original program, which runs on one thread** (the originals are serial). They include representation, algorithm and threading changes, not just VM improvements. The scaling column compares the Grail rewrite with itself: one thread versus 12 threads.
+The first two columns compare the **Grail rewrite against the upstream original program, which runs on one thread** (the originals are serial). They include representation, algorithm and threading changes, not just VM improvements. The scaling column compares the Grail rewrite with itself: one thread versus 8 threads. The parallel versions use `grail.Pool`.
 
-| Workload | Rewrite, 1 thread, vs upstream original | Rewrite, 12 threads, vs upstream original (1 thread) | Scaling: rewrite, 12 threads vs 1 thread |
+| Workload | Rewrite, 1 thread, vs upstream original | Rewrite, 8 threads, vs upstream original (1 thread) | Scaling: rewrite, 8 threads vs 1 thread |
 | --- | --- | --- | --- |
-| Ray tracing | About 1.9x faster | About 9.5x faster | About 4.9x |
-| Build graph, aggregation, Mandelbrot, fannkuch, float | 2% slower to 25% faster | About 6.7-8.4x faster | About 6-7.4x |
-| Spectral norm | About 9% slower | About 3.5x faster | About 3.8x |
-| Deepcopy workloads | 1.1x to 16x faster, depending on representation | 3.6x to 34x faster | About 2-3x |
-| Richards, chaos | About 1.15-1.25x faster | Serial workloads | - |
-| DeltaBlue, go | Parity to 1.1x faster | No reliable parallel result | - |
-| Nbody | About 2.3x slower | Serial workload | - |
+| Build graph, aggregation, Mandelbrot, fannkuch, float | 6% slower to 32% faster | About 6.3-8.6x faster | About 6.5-7.4x |
+| Ray tracing | About 2.1x faster | About 5.9x faster | About 2.8x |
+| Spectral norm | About 6% slower | About 4x faster | About 4.3x |
+| Deepcopy workloads | 1.7x slower to 16x faster, depending on representation | 3.4x to 65x faster | About 4-5.8x |
+| Chaos, hexiom, SQLGlot simplification and normalization | About 1.2-1.8x faster | Serial workloads | - |
+| SQLGlot generation | About 2x slower | Serial workload | - |
+| Richards, DeltaBlue, go | About 1.25-1.8x slower | DeltaBlue on 2 threads: about 1.1x slower | DeltaBlue: 1.6x (two tasks) |
+| Nbody | About 2.1x slower | Serial workload | - |
 
-Unchanged Python programs run at **about parity** on the Grail VM: from 9% slower (spectral norm) to 7% faster, with a median near zero. These are bounded benchmark workloads, not claims about full applications.
+Richards, DeltaBlue and go got slower than in earlier runs because their rewrites became fully immutable: a value kernel state, an immutable solver snapshot, and record positions and trees. They allocate where the originals mutate. The controls below run the same source, and Grail beats them on all three.
+
+Unchanged Python programs run at **about parity** on the Grail VM: from 8% slower (aggregation, a code-layout effect) to 3% faster, with a median near 1% slower. These are bounded benchmark workloads, not claims about full applications.
 
 ### Compared with today's Python
 
@@ -49,14 +52,17 @@ To separate the Grail runtime from the rewrites' algorithm changes, each rewrite
 
 | Workload | Grail vs frozen dataclass | Grail vs mutable slotted class |
 | --- | --- | --- |
-| Richards | About 3.3x faster | About 2.3x faster |
-| Nbody, float | 2.1-2.5x faster | 1.2-1.3x faster |
-| Ray tracing | About 2.2x faster | About 1.25x faster |
-| DeltaBlue | About 1.45x faster | About 1.4x faster |
-| Deepcopy workloads | About 27-30x faster | About 24-27x faster |
-| Fannkuch, Mandelbrot, go | About parity | Parity to 3% slower |
+| DeltaBlue | About 7.7x faster | About 6.1x faster |
+| MDP | About 8.5x faster | About 8.5x faster |
+| Richards | About 3.6x faster | About 2.2x faster |
+| Nbody, float | 2.6-2.7x faster | 1.35-1.4x faster |
+| Ray tracing | About 2.5x faster | About 1.3x faster |
+| Go | About 1.7x faster | About 1.6x faster |
+| Deepcopy workloads | About 23-26x faster | About 22-26x faster |
+| Chaos, SQLGlot | 1.0-1.35x faster | 3% slower to 5% faster |
+| Fannkuch, Mandelbrot, aggregation, build graph | About parity | About parity |
 
-Native records clearly beat the stock immutable equivalent, and on record-heavy code they now also beat a mutable class that gives up immutability. Where the rewrite is slower than both controls, little of the time is in records or dispatch.
+Native records clearly beat the stock immutable equivalent, and on record-heavy code they also beat a mutable class that gives up immutability. Where the rewrite is slower than upstream but faster than both controls, the cost is in the immutable algorithm, not in Grail's records or dispatch.
 
 ### Under the JIT
 
@@ -64,13 +70,13 @@ These runs use the **GIL-enabled build** with the JIT on, one thread, from the s
 
 | Workload | Grail rewrite vs upstream original | Grail rewrite vs mutable slotted class |
 | --- | --- | --- |
-| Ray tracing | About 2x faster | About 1.15x faster |
-| Chaos, go, DeltaBlue | About 1.15-1.3x faster | Go at parity; DeltaBlue about 1.7x faster |
-| Deepcopy | About 13-22x faster | About 33x faster |
-| Richards | About 1.45x slower | About 3.6x faster |
-| Nbody | About 3.1x slower | About 1.5x faster |
+| Ray tracing | About 2.3x faster | About 1.3x faster |
+| Chaos, float | About 1.2-1.35x faster | 1.07-1.5x faster |
+| Deepcopy | About 12-22x faster | About 27-35x faster |
+| Go, DeltaBlue | 1.4-1.75x slower | 1.4x and 6.9x faster |
+| Richards, nbody | About 2.7x slower | 2.7x and 1.6x faster |
 
-Unchanged programs run within about 6% of upstream under the JIT. The JIT speeds most rewrites up about as much as the originals (1.5-2.3x), but Richards' rewrite gains 2.4x against 4x for its original. Once Grail operations were traceable, 90-98% of executed work in the record- and dispatch-heavy workloads ran in tier 2, with no traces abandoned at Grail operations. Grail-specific optimization in the trace optimizer has barely started: folding dispatch into constants gained at most 2-3%.
+Unchanged programs run within about 4% of upstream under the JIT. Against this tail-call interpreter the JIT gains little: 0.96-1.25x for most originals and 1.9x for Richards, and 1.0-1.4x for the rewrites, so Richards' rewrite gains 1.16x where its original gains 1.9x. Earlier measurements found that once Grail operations were traceable, 90-98% of executed work in the record- and dispatch-heavy workloads ran in tier 2, with no traces abandoned at Grail operations. Grail-specific optimization in the trace optimizer has barely started: folding dispatch into constants gained at most 2-3%.
 
 ## What we have learned
 
@@ -85,6 +91,6 @@ Unchanged programs run within about 6% of upstream under the JIT. The JIT speeds
 
 ## What comes next
 
-Borrowed field loads (no reference-count traffic when a field is read from a record that outlives the use) are the main remaining general optimization without a JIT. Under the JIT, the next step is profiling why Richards gains less than the original, then using record guarantees in the trace optimizer to remove guards and reference counting; unboxing records is a later, larger question. Then come the semantics still needed to finish the design evaluation: comparison operators and an audit of where object identity matters. Unboxed fields and automatic value substitution are not implemented. The cost of delayed reclamation for shared values also needs measurement. Value records now cache their default hash (see `docs/implementation/cpython-runtime.md`); it is not yet in the matched results above.
+Borrowed field loads (no reference-count traffic when a field is read from a record that outlives the use) are the main remaining general optimization without a JIT. Under the JIT, the next step is profiling why Richards gains less than the original, then using record guarantees in the trace optimizer to remove guards and reference counting; unboxing records is a later, larger question. Then come the semantics still needed to finish the design evaluation: comparison operators and an audit of where object identity matters. Unboxed fields and automatic value substitution are not implemented. The cost of delayed reclamation for shared values also needs measurement. Value records now cache their default hash (see `docs/implementation/cpython-runtime.md`).
 
 The prototype has targeted debug-build and concurrency coverage, but is not production-ready. The current evidence supports Grail's sharing and value-reuse design and shows record-heavy code beating today's Python equivalents; it does **not** yet establish a general single-thread advantage over hand-written mutable code, nor that Grail's guarantees make JIT-compiled code faster.

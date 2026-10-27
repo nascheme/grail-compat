@@ -5,8 +5,10 @@
 The source of truth is docs/design/ in the Project Grail workspace (mirrored
 to the "Project Grail" Claude Doc); the copies here are overwritten, never
 edited.  Links to the workspace's docs/implementation/ notes, which are not
-published with this site, become plain path references.  docs/design/index.md
-is written by hand and is not touched.
+published with this site, become plain path references.  Text between
+<!-- not-published:start --> and <!-- not-published:end --> lines (meant only
+for the workspace doc's invited readers) is left out.
+docs/design/index.md is written by hand and is not touched.
 """
 
 import re
@@ -17,6 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 HEADER = ("<!-- Copied from the Project Grail docs/design/ by"
           " tools/copy_design_docs.py; do not edit here. -->\n\n")
+NOT_PUBLISHED = re.compile(r"^<!-- not-published:start -->\n.*?^<!-- not-published:end -->\n\n?",
+                           re.M | re.S)
 IMPL_LINK = re.compile(r"\[([^\]]*)\]\(\.\./implementation/([^)]+)\)")
 
 
@@ -24,6 +28,10 @@ def fix_links(text):
     return IMPL_LINK.sub(
         lambda m: f"`docs/implementation/{m.group(2)}` (Project Grail workspace)",
         text)
+
+
+def skip_unpublished(text):
+    return NOT_PUBLISHED.sub("", text)
 
 
 def main(argv):
@@ -35,7 +43,7 @@ def main(argv):
     dest = ROOT / "docs" / "design"
     dest.mkdir(exist_ok=True)
     for path in sorted(src.glob("[0-9][0-9]-*.md")):
-        (dest / path.name).write_text(HEADER + fix_links(path.read_text()))
+        (dest / path.name).write_text(HEADER + fix_links(skip_unpublished(path.read_text())))
         print(f"{path} -> {dest / path.name}")
     for path in sorted(src.glob("*.png")):
         shutil.copyfile(path, dest / path.name)

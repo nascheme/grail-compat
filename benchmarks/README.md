@@ -203,7 +203,7 @@ persistent `PVector` table of `Task` records, the current task and counters)
 advanced by the pure `scheduler_step` with `PVector.set` and `grail.replace`.
 `hybrid.py` keeps the earlier scheduler over local mutable lists.
 `mutate.py` is the same transition written with a `grail.mutate` draft; it is
-not timed by the harness (natively about 1.5x slower than `idiomatic.py`).
+not timed by the harness (natively about 1.3x slower than `idiomatic.py`).
 
 **sqlglot_port** - Partial SQLGlot 4.6.0 conversion: immutable expression trees,
 record-native simplification, Boolean normalization, compact SQL generation,

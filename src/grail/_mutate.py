@@ -1,8 +1,8 @@
 """grail.mutate: edit an immutable value through a thread-confined draft.
 
-The same file serves the native implementation (cpython-grail's
-Lib/grail/_mutate.py, copied by tools/sync_to_cpython_grail.py) and
-grail-compat.
+grail-compat's implementation.  cpython-grail implements the same
+behaviour natively (Modules/_grail_draft.c); tests/test_grail_mutate.py
+specifies both.
 
 ``mutate(value)`` returns a draft of a record, ``PVector`` or ``PMap``.
 Reading a field or item that holds another record, ``PVector`` or ``PMap``
@@ -25,16 +25,14 @@ from _thread import get_ident as _get_ident
 
 from . import PMap, PVector, record_fields, replace
 
-try:
-    from ._core import _is_record_type           # grail-compat
-except ImportError:
-    from _grail import _is_record_type           # cpython-grail
+from ._core import _is_record_type
 
 __all__ = ["mutate", "finish", "original"]
 
 _OPEN, _SEALED, _DONE = 0, 1, 2
 _MISSING = object()
 _DELETED = object()
+_BUILDING = object()
 _field_names = {}                # record type -> frozenset of field names
 
 
@@ -97,7 +95,10 @@ def _build(value, memo):
     key = id(value)
     built = memo.get(key)
     if built is None:
+        memo[key] = _BUILDING
         built = memo[key] = value._build(memo)
+    elif built is _BUILDING:
+        raise ValueError("draft contains itself")
     return built
 
 

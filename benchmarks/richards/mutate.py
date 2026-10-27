@@ -7,7 +7,7 @@ results, but ``scheduler_step`` edits the next snapshot with
 ``grail.mutate`` (assigning to ``s.tasks[t].queue`` and so on, as the
 mutable original does) instead of nesting ``PVector.set`` and
 ``grail.replace`` calls.  ``grail.finish`` builds the new snapshot with the
-same calls, so the result is identical; the draft is pure Python.
+same calls, so the result is identical.
 
 What it computes
 ----------------

@@ -60,6 +60,8 @@ record, vector, or Atom implementation, and has no such role in the prototype.
 - Compatibility Atom operations use a per-cell lock. Native value reads use a
   different synchronization strategy. User-facing atomic operations and
   identity-CAS semantics are shared; lock-free performance is not.
+- Compatibility drafts (`mutate`, `finish`) are pure Python, about 10x
+  slower than the native C drafts.
 - The compatibility `Pool` is pure Python on `threading`: about 0.7-0.9 us
   of overhead per task on free-threaded 3.14, against about 0.15 us for the
   native C pool. With the GIL it only helps tasks that release the GIL.

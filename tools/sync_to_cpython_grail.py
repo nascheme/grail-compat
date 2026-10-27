@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 C_FILES = ["grail_compat.h", "grail_hamt.h", "grail_hamt.c", "pds.c"]
-PY_FILES = ["_parallel.py", "_mutate.py"]
+PY_FILES = ["_parallel.py"]
 C_HEADER = ("/* Copied from grail-compat src/grail/_c/ by tools/sync_to_cpython_grail.py;"
             " do not edit here. */\n")
 TEST_HEADER = ("# Copied from grail-compat tests/ by tools/sync_to_cpython_grail.py;"

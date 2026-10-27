@@ -58,8 +58,12 @@ pickled, and should not be stored in published state. Record drafts have
 no methods. Their names belong to fields, which is why `finish` and
 `original` are functions.
 
-Drafts are pure Python on both backends. They make code shorter, not
-faster. Use `grail.replace` and `PVector.set` directly in hot loops.
+Drafts are native on cpython-grail and pure Python in grail-compat. They
+make code shorter, not faster: finishing builds the same records as
+`grail.replace` and `PVector.set`, and each edit also goes through a draft
+object. On the native backend, Richards' scheduler runs about 1.5x slower
+with a draft than with direct `replace` calls, so use those in the hottest
+loops.
 
 | Misuse | Error |
 | --- | --- |

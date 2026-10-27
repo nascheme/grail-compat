@@ -59,8 +59,9 @@ the next snapshot as the mutable original assigns to its objects:
         ...
     return grail.finish(s)
 
-It produces the same trace and counters. Drafts are pure Python, so it is
-much slower than the `replace` version.
+It produces the same trace and counters. On the native backend it runs
+about 1.5x slower than the `replace` version: finishing builds the same
+records, and every edit also goes through a draft.
 
 ## What not to parallelize
 

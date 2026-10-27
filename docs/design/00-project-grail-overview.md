@@ -1,6 +1,6 @@
 # Project Grail
 
-Oct 25, 2026 · @Neil Schemenauer
+Oct 27, 2026 · @Neil Schemenauer
 
 > "What… is your quest?"\
 "To seek the Holy Grail."
@@ -53,7 +53,7 @@ CPython's specializing interpreter already handles the common, well-behaved case
 | Collections in records are persistent maps, sets and vectors, updated by producing new versions | Keep records that hold collections as value records, and share every version across threads without locks |
 | Extensions use an opaque C API: field handles instead of offsets, builders instead of in-place initialization, strong references only, stable ABI only | Change layouts, unbox and flatten fields, and evolve the runtime without breaking compiled extensions |
 
-The gains are most speculative at this time, we will need to measure. In the [prototype](06-cpython-prototype.md), records clearly beat frozen dataclasses and generic dispatch beats `functools.singledispatch`, and against mutable slotted classes record-heavy code is about 1.2-2.3x faster, but immutable numeric updates are still much slower than in-place updates. The clear wins are deepcopy (conforming values are reused) and multi-threaded sharing. Under CPython's JIT (GIL build) the idiomatic Grail versions keep their lead over mutable slotted classes, but the JIT speeds them up no more than the originals, and Richards falls behind its original.
+The gains are most speculative at this time, we will need to measure. In the [prototype](06-cpython-prototype.md), records clearly beat frozen dataclasses and generic dispatch beats `functools.singledispatch`, and against mutable slotted classes record-heavy code is about 1.3-8.7x faster (ray tracing 1.3x, nbody 1.4x, Richards 5.6x, DeltaBlue 6.2x, MDP 8.7x), but immutable numeric updates are still much slower than in-place updates. The clear wins are deepcopy (conforming values are reused) and multi-threaded sharing. Under CPython's JIT (GIL build) the idiomatic Grail versions keep their lead over mutable slotted classes, and where the optimizer uses record guarantees the JIT speeds them up more than the originals (nbody 2.4x, ray tracing 1.5x), but code that rebuilds immutable state every step, such as Richards, falls further behind its original.
 
 What Grail keeps, preserving the Python feel:
 

@@ -1,6 +1,6 @@
 # PEP draft: Records
 
-Oct 25, 2026 · @Neil Schemenauer
+Oct 27, 2026 · @Neil Schemenauer
 
 *Status: proposed language semantics. The free-threaded CPython prototype implements a documented subset; see [prototype status](06-cpython-prototype.md). Stable ABI, racy publication, unboxing, and automatic substitution are not implemented promises.*
 
@@ -156,7 +156,7 @@ A record is a frozen dataclass that cannot be subclassed and has no methods. Ann
 
 ## Reference implementation
 
-`cpython-grail` is the current implementation and testing target. The native free-threaded fork implements boxed records, per-instance conformance, copy/pickle and an experimental field-load specialization. `LOAD_ATTR_RECORD` shows a small isolated benefit, not a general application speedup. Unboxed fields, automatic substitution, and the full identity-use audit remain outstanding. See [prototype status](06-cpython-prototype.md) for measured results and limits.
+`cpython-grail` is the current implementation and testing target. The native fork (free-threaded, also built with the GIL for JIT experiments) implements boxed records, per-instance conformance, native construction and replacement, copy/pickle, and interpreter and JIT specializations of record operations. `LOAD_ATTR_RECORD` shows a small isolated benefit, not a general application speedup. Unboxed fields, automatic substitution, and the full identity-use audit remain outstanding. See [prototype status](06-cpython-prototype.md) for measured results and limits.
 
 ## Rejected ideas
 

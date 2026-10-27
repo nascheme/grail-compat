@@ -1,6 +1,6 @@
 # CPython prototype: status and findings
 
-Oct 26, 2026 · @Neil Schemenauer
+Oct 27, 2026 · @Neil Schemenauer
 
 The prototype tests whether Grail's object model is practical in CPython's free-threaded interpreter. It is based on the CPython 3.15 branch and is published as the `grail` branch of [github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail). The core semantics work; performance is promising for sharing, copying and dispatch-heavy code, but immutable numeric updates remain expensive. It also builds with the GIL enabled and runs under CPython's experimental copy-and-patch JIT, so we can begin to measure what Grail's guarantees buy a JIT.
 
@@ -14,6 +14,7 @@ The prototype tests whether Grail's object model is practical in CPython's free-
 | Operators | Exact ordered-pair registration for `+`, `-`, `*`, `/` and augmented forms, consistent across expressions, `operator` and C arithmetic APIs. A registered result is final; unregistered pairs keep normal Python behavior. A pair of two builtin types cannot be registered. |
 | Copy and serialization | Copy, deepcopy and pickle, including ordinary aliases and cycles. Proven values can be reused rather than copied. |
 | Persistent collections | Native `PMap`, `PSet` and `PVector`, sharing unchanged structure between versions; flat unboxed `FloatVector` and `IntVector` with a read-only buffer; thread-confined builders for all three that edit exclusively owned nodes in place; bottom-up map/set construction; `PMap.update_with` |
+| Thread pool | Native `grail.Pool` and shared `grail.pool()` with low per-task overhead, scoped spawning with work stealing, and the `pmap` and `parallel_reduce` helpers |
 | Shared state | Native `Atom` with lock-free snapshots, reset and compare-and-set, retrying swap and integer add with backoff |
 | Interpreter fast paths | Specialized record field loads, positional construction and keyword `grail.replace`/`copy.replace` calls, direct entry into registered operator and generic-function implementations without an extra dispatch call, and specialized `PVector` indexing and `set` calls |
 | JIT (GIL build) | Record construction, registered operators and generic calls are traced in tier 2 instead of ending traces. Dispatch with known argument types is folded into a trace constant; registration and override invalidate dependent executors. The optimizer uses record guarantees: field loads are typed from value annotations and, since fields are never replaced, need no reference counting while the record is held; a record or tuple shown to conform stays conforming for the rest of the trace, so construction checks only the arguments it cannot prove. Element-wise arithmetic on all-float records and float expressions over their fields run as single operations on unboxed floats. |
@@ -50,13 +51,13 @@ To separate the Grail runtime from the idiomatic versions' algorithm changes, ea
 
 | Workload | Grail vs frozen dataclass | Grail vs mutable slotted class |
 | --- | --- | --- |
-| DeltaBlue | About 7.7x faster | About 6.1x faster |
-| MDP | About 8.5x faster | About 8.5x faster |
+| DeltaBlue | About 7.8x faster | About 6.2x faster |
+| MDP | About 8.6x faster | About 8.7x faster |
 | Richards | About 7.4x faster | About 5.6x faster |
 | Nbody, float | 2.6-2.75x faster | 1.4x faster |
 | Ray tracing | About 2.5x faster | About 1.3x faster |
-| Go | About 1.7x faster | About 1.6x faster |
-| Deepcopy workloads | About 23-26x faster | About 22-26x faster |
+| Go | About 1.8x faster | About 1.6x faster |
+| Deepcopy workloads | About 24-25x faster | About 22-25x faster |
 | Chaos, SQLGlot | 1.0-1.35x faster | 3% slower to 6% faster |
 | Fannkuch, Mandelbrot, aggregation, build graph | About parity | About parity |
 
@@ -70,7 +71,7 @@ These runs use the **GIL-enabled build** with the JIT on, one thread, from the s
 | --- | --- | --- |
 | Ray tracing | About 3.3x faster | About 1.8x faster |
 | Chaos, float | About 1.4x faster | 1.2x and 1.75x faster |
-| Deepcopy | About 12-22x faster | About 27-35x faster |
+| Deepcopy | About 12-22x faster; the memo variant about 2x slower | About 27-35x faster |
 | Nbody | About 1.25x slower | About 3.5x faster |
 | Go, DeltaBlue | 1.3-1.7x slower | 1.5x and 7.1x faster |
 | Richards | About 2.3x slower | About 7x faster |

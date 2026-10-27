@@ -35,6 +35,7 @@ py.install_sources(
   'src/grail/_core.py',
   'src/grail/_numvec.py',
   'src/grail/_pds.py',
+  'src/grail/_pool.py',
   'src/grail/_vector.py',
   'src/grail/py.typed',
   subdir: 'grail',

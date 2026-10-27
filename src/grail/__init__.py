@@ -2,7 +2,8 @@
 
 A close port of the native facade (cpython-grail/Lib/grail/__init__.py).
 The native ``_grail`` core is replaced by ``grail._core``; persistent
-collections, numeric vectors and atoms live in sibling modules.  On CPython
+collections, numeric vectors, atoms and the thread pool live in sibling
+modules.  On CPython
 3.14+ PMap and PSet are the prototype's C implementation
 (``grail._pds_native``, over a copy of CPython's HAMT); elsewhere, or with
 GRAIL_PURE=1 in the environment, they are pure Python (``grail._pds``);
@@ -27,6 +28,7 @@ It adds Python-level overhead the native runtime does not have, so timings
 taken with it say nothing about Grail performance.
 """
 
+import _thread
 import builtins as _builtins
 import inspect as _inspect
 import operator as _operator
@@ -36,6 +38,7 @@ from collections import namedtuple as _namedtuple
 
 from . import _core
 from ._atom import Atom
+from ._pool import Pool
 from ._vector import PVector
 from ._numvec import FloatVector, IntVector
 
@@ -82,7 +85,8 @@ def _dataclass_transform(**kwargs):
 backend = _core.backend
 __all__ = ["record", "field", "replace", "generic", "ops", "repr", "eq", "hash",
            "record_fields", "record_values", "is_value_record", "substitutable",
-           "PMap", "PSet", "PVector", "FloatVector", "IntVector", "Atom"]
+           "PMap", "PSet", "PVector", "FloatVector", "IntVector", "Atom",
+           "Pool", "pool"]
 
 _MISSING = object()
 _Field = _namedtuple("_Field", "default factory")
@@ -376,3 +380,31 @@ ops = _Ops(*(_core.Generic(getattr(_operator, name), "a", pair=True)
            _core.Generic(_builtins.abs, "obj"))
 _core._configure(repr, eq, hash,
                  (ops.add, ops.sub, ops.mul, ops.truediv, ops.neg, ops.abs))
+
+
+_shared_pool = None
+_shared_pool_lock = _thread.allocate_lock()
+
+
+def pool():
+    """Return the shared Pool, started on first use with one worker per CPU.
+
+    It is shut down at exit. A child process made by fork() starts its own.
+    """
+    global _shared_pool
+    with _shared_pool_lock:
+        if _shared_pool is None:
+            import atexit
+            import os
+            cpus = getattr(os, "process_cpu_count", os.cpu_count)()  # 3.13+
+            _shared_pool = Pool(cpus or 1)
+            atexit.register(_shared_pool.shutdown)
+            if hasattr(os, "register_at_fork"):
+                os.register_at_fork(after_in_child=_forget_pool)
+        return _shared_pool
+
+
+def _forget_pool():
+    global _shared_pool, _shared_pool_lock
+    _shared_pool = None
+    _shared_pool_lock = _thread.allocate_lock()

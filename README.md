@@ -1,5 +1,9 @@
 # grail-compat
 
+> **Proof of concept — not recommended for production use.** The design and
+> APIs are still subject to change. The implementation is not yet well tested
+> and is likely to contain bugs.
+
 Implementation of the Project Grail API (`import grail`) for existing
 CPython versions (3.10+).  It follows the native prototype's semantics; see
 the docstring in `src/grail/__init__.py` for the known deviations.

@@ -13,6 +13,10 @@ sources:
 
 # Grail
 
+> **Proof of concept — not recommended for production use.** grail-compat's
+> design and APIs are still subject to change. The implementation is not yet
+> well tested and is likely to contain bugs.
+
 Grail is an experimental Python API for closed immutable records, extensible
 generic functions, persistent collections, and synchronized reference cells.
 Try it on stock CPython 3.10+ with grail-compat or on the native CPython

@@ -44,12 +44,13 @@ def _names(cls):
 
 
 class _Root:
-    __slots__ = ("thread", "state", "draft", "result")
+    # No reference to the root draft: child drafts refer to the root, and
+    # the root draft holds its children.
+    __slots__ = ("thread", "state", "result")
 
     def __init__(self):
         self.thread = _thread.get_ident()
         self.state = _OPEN
-        self.draft = None
         self.result = _MISSING
 
 
@@ -107,18 +108,19 @@ def _root(draft):
 
 
 class _Draft:
-    __slots__ = ("_d_base", "_d_root", "_d_changes")
+    __slots__ = ("_d_base", "_d_root", "_d_changes", "_d_is_root")
 
     def __init__(self, base, root):
         _set_base(self, base)
         _set_root(self, root)
         _set_changes(self, {})
+        _set_is_root(self, False)
 
     # Context management applies to the root draft.
     def __enter__(self):
         root = _root(self)
         _check(root)
-        if root.draft is not self:
+        if not self._d_is_root:
             raise RuntimeError("only the root draft is a context manager")
         return self
 
@@ -144,6 +146,7 @@ class _Draft:
 
 _set_base = _Draft._d_base.__set__
 _set_root = _Draft._d_root.__set__
+_set_is_root = _Draft._d_is_root.__set__
 _set_changes = _Draft._d_changes.__set__
 
 
@@ -360,7 +363,7 @@ def mutate(value, /):
     draft = _draft(value, root)
     if not isinstance(draft, _Draft):
         raise TypeError("mutate() requires a Grail record, PVector or PMap")
-    root.draft = draft
+    _set_is_root(draft, True)
     return draft
 
 
@@ -372,7 +375,7 @@ def finish(draft, /):
     if not isinstance(draft, _Draft):
         raise TypeError("finish() requires a draft from mutate()")
     root = _root(draft)
-    if root.draft is not draft:
+    if not draft._d_is_root:
         raise RuntimeError("finish() requires the root draft")
     if root.thread != _thread.get_ident():
         raise RuntimeError("draft used from another thread")

@@ -57,7 +57,7 @@ could go further by avoiding temporary record allocations or keeping numeric
 fields unboxed. You write the data model; the runtime exploits its guarantees.
 
 The native prototype already shows gains in record-heavy code, copying, and
-sharing. This is not a promise that every rewrite is faster: creating new
+sharing. This is not a promise that every idiomatic Grail version is faster: creating new
 numeric records can still cost more than updating mutable objects in place.
 Larger gains from unboxing and allocation elimination remain future work.
 Installing grail-compat on stock Python lets you try the programming model;
@@ -89,9 +89,9 @@ and frequent writes to one Atom can still become a bottleneck.
 
 ## Early benchmark results
 
-These are early benchmark results, based on translating existing benchmark
-scripts into idiomatic Grail style. They show representative workloads,
-including cases where the rewrite is slower. The comparisons include changes
+These are early benchmark results for idiomatic Grail versions of existing
+upstream benchmarks. They show representative workloads,
+including cases where the Grail version is slower. The comparisons include changes
 to data representation, program structure, and parallel execution, not just
 interpreter optimizations.
 
@@ -102,13 +102,13 @@ Both interpreters were built with clang-19, PGO and LTO. These are
 Times are medians of fresh-process medians. Changes below about 5% should be
 treated as noise, not reliable wins or losses.
 
-### Single-threaded: rewrite versus original
+### Single-threaded: idiomatic Grail versus original
 
 Both programs run on **one thread**. The original runs on upstream CPython;
-the Grail rewrite runs on cpython-grail. Speedup is the original's time divided
-by the rewrite's time: **above 1x is faster; below 1x is slower**.
+the idiomatic Grail version runs on cpython-grail. Speedup is the original's time
+divided by the Grail version's time: **above 1x is faster; below 1x is slower**.
 
-| Workload | Original, 1 thread (ms) | Grail rewrite, 1 thread (ms) | Speedup versus original |
+| Workload | Original, 1 thread (ms) | Idiomatic Grail, 1 thread (ms) | Speedup versus original |
 | --- | ---: | ---: | ---: |
 | Ray tracing | 483.8 | 250.1 | 1.93x |
 | Richards | 84.8 | 73.2 | 1.16x |
@@ -121,24 +121,24 @@ by the rewrite's time: **above 1x is faster; below 1x is slower**.
 | Deepcopy | 117.8 | 7.78 | 15.2x |
 | Nbody | 159.0 | 366.7 | 0.43x |
 
-The deepcopy rewrite can reuse conforming immutable values instead of copying
+The idiomatic Grail deepcopy benchmark can reuse conforming immutable values instead of copying
 them. Nbody shows the opposite trade-off: its immutable numeric updates create
 many temporary records, while the original updates numbers in place.
 A faster Grail runtime does not make every representation change a win.
 
 ### Multi-threaded: application speedup versus scaling
 
-Here the **same Grail rewrite uses 12 worker threads**. The two ratio columns
+Here the **same idiomatic Grail version uses 12 worker threads**. The two ratio columns
 answer different questions:
 
 - **Versus original:** original program's one-thread time divided by the
-  Grail rewrite's 12-thread time. This combines the rewrite's single-thread
+  Grail version's 12-thread time. This combines its single-thread
   advantage or disadvantage with its parallel speedup.
-- **Scaling:** Grail rewrite's one-thread time divided by its own 12-thread
-  time. This isolates how much faster that rewrite runs when given more threads.
+- **Scaling:** Grail version's one-thread time divided by its own 12-thread
+  time. This isolates how much faster that version runs when given more threads.
   It is not a comparison against a parallel version of the original.
 
-| Workload | Grail rewrite, 12 threads (ms) | Versus original, 1 thread | Scaling: Grail 1 to 12 threads |
+| Workload | Idiomatic Grail, 12 threads (ms) | Versus original, 1 thread | Scaling: Grail 1 to 12 threads |
 | --- | ---: | ---: | ---: |
 | Ray tracing | 51.0 | 9.49x | 4.91x |
 | Float | 13.9 | 8.41x | 7.38x |

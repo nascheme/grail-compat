@@ -28,7 +28,7 @@ contain proposals that are not implemented.
 Closed fields, immutable bindings and immutable record types give readers
 stable data and give a runtime fewer mutable assumptions to guard. Value
 annotations can also show that an instance holds only recognized values.
-These are design opportunities, not a promise that every rewrite runs faster.
+These are design opportunities, not a promise that every idiomatic Grail version runs faster.
 
 ## Why no methods or inheritance?
 

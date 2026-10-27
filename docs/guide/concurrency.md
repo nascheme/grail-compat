@@ -51,5 +51,9 @@ The compatibility implementation uses locks for Atom operations; native reads
 have different costs. Neither backend guarantees application speedup. CPU
 parallelism needs a free-threaded interpreter and sufficient task size.
 
-References: [Atom](../reference/atom.md), [generic functions](../reference/generic.md).
+For parallel loops and task trees, `grail.Pool`, `grail.pmap` and
+`grail.parallel_reduce` replace an executor (see the Pool reference).
+
+References: [Atom](../reference/atom.md), [Pool](../reference/pool.md),
+[generic functions](../reference/generic.md).
 See [backend differences](../backends.md) and [the aggregate example](../examples/aggregate.md).

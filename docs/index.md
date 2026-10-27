@@ -13,7 +13,7 @@ sources:
 
 # Grail
 
-> **Proof of concept — not recommended for production use.** grail-compat's
+> **Proof of concept - not recommended for production use.** grail-compat's
 > design and APIs are still subject to change. The implementation is not yet
 > well tested and is likely to contain bugs.
 

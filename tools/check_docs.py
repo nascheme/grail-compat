@@ -22,6 +22,7 @@ REFERENCE_PAGES = {
     "FloatVector": "numeric-vectors.md",
     "IntVector": "numeric-vectors.md",
     "Atom": "atom.md",
+    "Pool": "pool.md",
     "ops": "hooks-and-ops.md",
 }
 

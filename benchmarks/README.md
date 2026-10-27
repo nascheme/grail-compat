@@ -24,8 +24,8 @@ folding. Pure record tests do not require SQLGlot.
     <name>/hybrid.py      an earlier, partly mutable conversion kept as a
                           comparison control (go, michi, deltablue, richards,
                           buildgraph)
-    richards/mutate.py    experimental: idiomatic.py's scheduler written with
-                          grail.mutate drafts (not timed by the harness)
+    <name>/mutate.py      experimental: idiomatic.py written with grail.mutate
+                          drafts (richards, deltablue; not timed by the harness)
     bpe_tokeniser/data/   the upstream training corpus
     buildgraph/challenge/, buildgraph/graphs/wide.json
                           vendored challenge code and one of its graphs
@@ -140,7 +140,9 @@ Repetitions can run on separate threads.
 solver.  Solver state is a value (a `PVector` of `Var` records plus
 direction/constraint vectors by id); every operation returns a new snapshot,
 editing through transients.  `hybrid.py` keeps the earlier
-record-of-mutable-lists solver.
+record-of-mutable-lists solver.  `mutate.py` edits each operation's snapshot
+through a `grail.mutate` draft instead (natively about 1.06x slower than
+`idiomatic.py` free-threaded, 1.14x with the JIT).
 
 **fannkuch** - pyperformance `bm_fannkuch`: maximum pancake flips over all
 permutations of 0..n-1.  Ranges of permutation indices (`Chunk` value

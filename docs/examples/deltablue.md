@@ -4,6 +4,7 @@ sources:
   - benchmarks/deltablue/idiomatic.py
   - benchmarks/deltablue/upstream.py
   - benchmarks/deltablue/hybrid.py
+  - benchmarks/deltablue/mutate.py
 ---
 
 # DeltaBlue: graph IDs and batches
@@ -48,6 +49,18 @@ Batch is deliberately not shareable while its builders are open.
 `benchmarks/deltablue/upstream.py` is the class-based algorithm.
 `benchmarks/deltablue/hybrid.py` keeps a record of mutable lists.
 The idiomatic source and benchmark README describe the current snapshot port.
+`benchmarks/deltablue/mutate.py` is the same port with an experimental
+[draft](../reference/mutate.md) of the Solver per operation instead of a
+Batch of transients. Propagation assigns fields where the idiomatic version
+rebuilds records:
+
+    def recalculate(b, c):
+        ...
+        x.walk = max(c.strength, xi.walk)
+        x.stay = stay
+
+Each changed `Var` is rebuilt once per operation, when the draft finishes.
+Natively it runs within about 6% of the transient version.
 
 The chain and projection tests are independent and can run concurrently;
 propagation within either solve remains dependent work. The port retains

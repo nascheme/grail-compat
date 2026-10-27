@@ -73,6 +73,13 @@ class NativeTests(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.assertTrue(variant.check(result))
 
+    def test_deltablue_mutate_matches(self):
+        # deltablue/mutate.py edits the same snapshots through grail.mutate.
+        idiomatic = load_benchmark("deltablue")
+        variant = load_benchmark("deltablue", "mutate.py")
+        self.assertEqual([repr(s) for s in variant.delta_blue(100)],
+                         [repr(s) for s in idiomatic.delta_blue(100)])
+
     def test_generic_dispatch_and_keywords(self):
         data = richards.DeviceData(None)
         new, action = richards.step(data=data, packet=None)

@@ -2,7 +2,7 @@
 
 Oct 25, 2026 · @Neil Schemenauer
 
-*Status: an appendix, outside Grail's core scope. API and implementation proposals motivated by the benchmark workloads, not shipped toolkit features. The native prototype currently provides a boxed `Atom` with lock-free `value`, `reset` and identity-based `compare_and_set`, a retrying `swap`, and integer `add`, and a C thread pool, `grail.Pool`, with spinningjenny's `map`, a work-stealing `scope`, and the `pmap` and `parallel_reduce` helpers (see `docs/implementation/pool.md`); it has no `Promise` or seed helper.*
+*Status: an appendix, outside Grail's core scope. API and implementation proposals motivated by the benchmark workloads, not shipped toolkit features. The native prototype currently provides a boxed `Atom` with lock-free `value`, `reset` and identity-based `compare_and_set`, a retrying `swap`, and integer `add`, and a C thread pool, `grail.Pool`, with spinningjenny's `map`, a work-stealing `scope`, and the `pmap` and `parallel_reduce` helpers (see the [Pool reference](../reference/pool.md)); it has no `Promise` or seed helper.*
 
 **Relation to the core design.** Grail itself needs only two small pieces of this: `Atom.add`, which belongs in the core Atom, and naming `queue.SimpleQueue` as safe to share. Everything else here (`Promise`, random streams, the executor) is library code that needs no language or VM support. It shows what can be built on the Grail foundation of values and atoms, and would ship in the `grail` package or a separate one, not in a PEP.
 
@@ -116,7 +116,7 @@ A possible Rust extension, built with PyO3 and maturin, would provide:
 - `Atom`: possibly an unboxed integer representation with a boxed fallback. Any representation must preserve the existing identity-based `compare_and_set` contract: a snapshot returned by `.value` must remain a valid expected object while the state is unchanged. Boxing a fresh object on every read would break that contract. Define boxing, transitions, overflow, reference ownership and reclamation before choosing CAS storage.
 - `Promise`: a once-cell with parking.
 - `spawn_seeds`: SplitMix64- or SeedSequence-style hashing.
-- The executor: spinningjenny with the changes above, once licensing allows. Instead, `cpython-grail` now has an independent C implementation of `map` (`grail.Pool`, `grail.pool()`); its per-task overhead is about a third of spinningjenny's (`bench/notes/pool.md`).
+- The executor: `cpython-grail` has an independent C implementation (`grail.Pool`, `grail.pool()`). See the [Pool reference](../reference/pool.md) for current contracts.
 
 Native boxed `Atom` already exists in `cpython-grail`, which is the current testing target. An unboxed Atom or Promise would be a separate experiment, not a reason to weaken identity-CAS or publication semantics. A future compatibility implementation would need its own tests and documented limits; it is not a performance baseline for this work.
 

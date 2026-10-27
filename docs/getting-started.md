@@ -1,15 +1,12 @@
 ---
 sources:
-  - grail-compat/README.md
-  - grail-compat/pyproject.toml
-  - grail-compat/docs/design/01-pep-draft-records.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/tests/test_grail.py
-  - grail-compat/docs/design/02-pep-draft-generic-functions.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/tests/test_grail.py
+  - README.md
+  - pyproject.toml
+  - docs/design/01-pep-draft-records.md
+  - docs/design/02-pep-draft-generic-functions.md
+  - src/grail/__init__.py
+  - src/grail/_core.py
+  - tests/test_grail.py
 ---
 
 # Getting started
@@ -57,10 +54,9 @@ The prototype CPython implementation of Grail is the `grail` branch of
 [github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail). Build it as CPython, configured with
 `--disable-gil` for the free-threaded build.
 
-In the parent Project Grail workspace, the existing built interpreter is at
-`cpython-grail/build-grail/python`. Run your program with it, without installing
-grail-compat or adding its `src` directory to PYTHONPATH. It provides `grail`
-as part of the interpreter. See [contributing](contributing.md) for source
-build and test notes, and [backends](backends.md) for differences.
+Run your program with the interpreter you built, without installing
+grail-compat or adding its `src` directory to PYTHONPATH. The native prototype
+provides `grail` as part of the interpreter. See [contributing](contributing.md)
+for source build and test notes, and [backends](backends.md) for differences.
 
 Continue with the [tutorial](tutorial/index.md).

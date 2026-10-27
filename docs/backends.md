@@ -1,18 +1,18 @@
 ---
 sources:
-  - grail-compat/README.md
-  - grail-compat/src/grail/__init__.py
-  - cpython-grail/Lib/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/src/grail/_atom.py
-  - grail-compat/src/grail/_pool.py
-  - grail-compat/src/grail/_pds.py
-  - grail-compat/src/grail/_vector.py
-  - grail-compat/tests/test_grail.py
-  - grail-compat/tests/test_grail_atom.py
-  - grail-compat/docs/design/05-design-persistent-collections.md
-  - grail-compat/src/grail/_numvec.py
-  - grail-compat/tests/test_grail_numvec.py
+  - README.md
+  - src/grail/__init__.py
+  - docs/design/06-cpython-prototype.md
+  - src/grail/_core.py
+  - src/grail/_atom.py
+  - src/grail/_pool.py
+  - src/grail/_pds.py
+  - src/grail/_vector.py
+  - tests/test_grail.py
+  - tests/test_grail_atom.py
+  - docs/design/05-design-persistent-collections.md
+  - src/grail/_numvec.py
+  - tests/test_grail_numvec.py
 ---
 
 # Backends and compatibility

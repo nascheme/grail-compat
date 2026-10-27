@@ -1,12 +1,12 @@
 ---
 sources:
-  - grail-compat/docs/design/00-project-grail-overview.md
-  - grail-compat/docs/design/01-pep-draft-records.md
-  - grail-compat/docs/design/02-pep-draft-generic-functions.md
-  - grail-compat/docs/design/03-pep-draft-record-syntax.md
-  - grail-compat/docs/design/05-design-persistent-collections.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
+  - docs/design/00-project-grail-overview.md
+  - docs/design/01-pep-draft-records.md
+  - docs/design/02-pep-draft-generic-functions.md
+  - docs/design/03-pep-draft-record-syntax.md
+  - docs/design/05-design-persistent-collections.md
+  - src/grail/__init__.py
+  - docs/design/07-appendix-concurrency-toolkit.md
 ---
 
 # Background and planned work
@@ -62,15 +62,14 @@ C API is separate design work; this site covers only the Python API.
 
 ## Design sources
 
-The source-of-truth drafts live in the parent Project Grail checkout:
+The [design documents](design/index.md) are included in this repository and site:
 
-- `grail-compat/docs/design/00-project-grail-overview.md`: overview and memory model.
-- `grail-compat/docs/design/01-pep-draft-records.md`: record rationale and proposed semantics.
-- `grail-compat/docs/design/02-pep-draft-generic-functions.md`: open generic protocols.
-- `grail-compat/docs/design/03-pep-draft-record-syntax.md`: proposed record statement.
-- `grail-compat/docs/design/05-design-persistent-collections.md`: collections and typed conformance.
-- `grail-compat/docs/design/07-appendix-concurrency-toolkit.md`: planned library helpers.
+- [Overview and memory model](design/00-project-grail-overview.md).
+- [Records](design/01-pep-draft-records.md): rationale and proposed semantics.
+- [Generic functions](design/02-pep-draft-generic-functions.md): open protocols.
+- [Record syntax](design/03-pep-draft-record-syntax.md): proposed statement.
+- [Persistent collections](design/05-design-persistent-collections.md).
+- [Concurrency toolkit](design/07-appendix-concurrency-toolkit.md).
 
-Public source URLs are not configured yet. These paths are navigation aids
-for the workspace checkout, not claims that the proposals ship. See
-[contributing](contributing.md) for local maintenance commands.
+These are proposals, not claims that every feature ships. See
+[contributing](contributing.md) for maintenance commands.

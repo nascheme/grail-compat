@@ -66,11 +66,10 @@ Not vendored:
 - The challenge's other four graphs (`chain`, `diamond`, `realistic`,
   `tree`; 4MB).  Get them from the challenge repository, or regenerate
   them with `buildgraph/challenge/generate.py`.
-- mandelbrot and aggregate have no `upstream.py`: their originals (the
-  py-free-threading notebook's serial loop and cereggii's
-  `AtomicDict.reduce()` example baseline) are short snippets embedded in
-  the Project Grail measurement harness (`bench/harness/measure_mandelbrot.py`
-  and `measure_aggregate.py` in the Project Grail repository).
+- mandelbrot and aggregate have no `upstream.py`. Mandelbrot's original is
+  the [free-threading guide notebook](https://py-free-threading.github.io/examples/mandelbrot/).
+  Aggregate's baseline is a serial dict loop accumulating `sums[key] += value`,
+  from [cereggii's reduction example](https://dpdani.github.io/cereggii/examples/AtomicDict/reduce/).
 
 ## Common rules for the idiomatic versions
 
@@ -260,7 +259,8 @@ backend name and similar) skip on grail-compat.
   stages, including the vendored TPCH fixture. Differential tests skip when
   SQLGlot is absent; a version mismatch is an error.
 
-The other idiomatic versions are checked against `upstream.py` by the Project Grail
-measurement harness (`bench/harness/measure_<name>.py` and
-`run_matched.py --check-only`), which compares results exactly (bit-for-bit
-for floats, node-by-node for search trees).
+The other directories retain their vendored originals for differential
+comparison. Running an `idiomatic.py` is a workload smoke check, not proof of
+equivalence or a native speedup. See the
+[prototype status report](../docs/design/06-cpython-prototype.md) for the
+measured native results and their limitations.

@@ -1,16 +1,14 @@
 ---
 sources:
-  - grail-compat/docs/design/00-project-grail-overview.md
-  - grail-compat/docs/design/01-pep-draft-records.md
-  - grail-compat/docs/design/02-pep-draft-generic-functions.md
-  - grail-compat/docs/design/05-design-persistent-collections.md
-  - grail-compat/docs/design/06-cpython-prototype.md
-  - bench/results/20261026-111345-5c74a29e4ba/README.md
-  - bench/results/20261026-111345-5c74a29e4ba/ft/results.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_atom.py
-  - grail-compat/tests/test_grail.py
-  - grail-compat/tests/test_grail_atom.py
+  - docs/design/00-project-grail-overview.md
+  - docs/design/01-pep-draft-records.md
+  - docs/design/02-pep-draft-generic-functions.md
+  - docs/design/05-design-persistent-collections.md
+  - docs/design/06-cpython-prototype.md
+  - src/grail/__init__.py
+  - src/grail/_atom.py
+  - tests/test_grail.py
+  - tests/test_grail_atom.py
 ---
 
 # Why Grail?
@@ -87,84 +85,24 @@ Scaling still depends on task size, serial dependencies, allocation, and
 shared-reference costs. Grail does not make a sequential algorithm parallel,
 and frequent writes to one Atom can still become a bottleneck.
 
-## Early benchmark results
+## Current benchmark status
 
-These are early benchmark results for idiomatic Grail versions of existing
-upstream benchmarks. They show representative workloads,
-including cases where the Grail version is slower. The comparisons include changes
-to data representation, program structure, and parallel execution, not just
-interpreter optimizations.
+[CPython prototype status](design/06-cpython-prototype.md) reports the latest
+matched measurements, setup and remaining limits. They compare native Grail against
+matched upstream builds, not grail-compat against stock Python.
 
-The measurements use the native CPython 3.15-based prototype, commit
-`5c74a29e4ba`, on a Ryzen 5 2600X with **6 cores and 12 hardware threads**.
-Both interpreters were built with clang-19, PGO and LTO. These are
-**free-threaded builds, with the JIT disabled**, over three rounds.
-Times are medians of fresh-process medians. Changes below about 5% should be
-treated as noise, not reliable wins or losses.
+Unchanged programs run near parity. Several coarse parallel rewrites scale
+about 6-8x on eight cores. Record-heavy rewrites beat same-source stock Python
+controls, but fully immutable nbody, Richards, DeltaBlue and Go remain slower
+than their mutable originals. The GIL-enabled JIT improves numeric record
+arithmetic; snapshot allocation remains a cost.
 
-### Single-threaded: idiomatic Grail versus original
-
-Both programs run on **one thread**. The original runs on upstream CPython;
-the idiomatic Grail version runs on cpython-grail. Speedup is the original's time
-divided by the Grail version's time: **above 1x is faster; below 1x is slower**.
-
-| Workload | Original, 1 thread (ms) | Idiomatic Grail, 1 thread (ms) | Speedup versus original |
-| --- | ---: | ---: | ---: |
-| Ray tracing | 483.8 | 250.1 | 1.93x |
-| Richards | 84.8 | 73.2 | 1.16x |
-| DeltaBlue | 5.85 | 5.88 | 1.00x |
-| Float | 117.0 | 102.6 | 1.14x |
-| Fannkuch | 642.8 | 654.9 | 0.98x |
-| Aggregation | 679.5 | 620.4 | 1.10x |
-| Mandelbrot | 432.6 | 346.3 | 1.25x |
-| Spectral norm | 130.4 | 143.0 | 0.91x |
-| Deepcopy | 117.8 | 7.78 | 15.2x |
-| Nbody | 159.0 | 366.7 | 0.43x |
-
-The idiomatic Grail deepcopy benchmark can reuse conforming immutable values instead of copying
-them. Nbody shows the opposite trade-off: its immutable numeric updates create
-many temporary records, while the original updates numbers in place.
-A faster Grail runtime does not make every representation change a win.
-
-### Multi-threaded: application speedup versus scaling
-
-Here the **same idiomatic Grail version uses 12 worker threads**. The two ratio columns
-answer different questions:
-
-- **Versus original:** original program's one-thread time divided by the
-  Grail version's 12-thread time. This combines its single-thread
-  advantage or disadvantage with its parallel speedup.
-- **Scaling:** Grail version's one-thread time divided by its own 12-thread
-  time. This isolates how much faster that version runs when given more threads.
-  It is not a comparison against a parallel version of the original.
-
-| Workload | Idiomatic Grail, 12 threads (ms) | Versus original, 1 thread | Scaling: Grail 1 to 12 threads |
-| --- | ---: | ---: | ---: |
-| Ray tracing | 51.0 | 9.49x | 4.91x |
-| Float | 13.9 | 8.41x | 7.38x |
-| Fannkuch | 96.4 | 6.67x | 6.79x |
-| Aggregation | 96.8 | 7.02x | 6.41x |
-| Mandelbrot | 56.9 | 7.61x | 6.09x |
-| Spectral norm | 37.5 | 3.48x | 3.81x |
-| Deepcopy | 3.43 | 34.3x | 2.26x |
-| Build graph | 442.3 | 7.42x | 7.38x |
-
-For example, ray tracing is about **9.5x faster than the original serial
-program**, but its **parallel scaling is about 4.9x**, not 9.5x. Deepcopy's
-large advantage over the original mostly comes from avoiding copying, not
-from adding threads. Twelve workers share six physical cores with simultaneous
-multithreading; the scaling column is a wall-time ratio, not per-core efficiency.
-
-Not every workload has a comparable 12-thread version. Richards, chaos and
-Nbody are serial here; independent runs would measure throughput rather than
-speeding up one run. Changed search or random algorithms are not substituted
-for missing parallel results.
-
-These are small benchmark programs, not full-application performance promises.
-They are native-prototype measurements, not grail-compat timings. The source
-snapshot and full results are recorded in the parent workspace under
-`bench/results/20261026-111345-5c74a29e4ba/`; the prototype status report is
-[CPython prototype status](design/06-cpython-prototype.md).
+Distinguish three comparisons: unchanged code measures the VM effect;
+a rewrite versus the original includes algorithm and representation changes;
+the rewrite versus itself at more threads measures scaling. Copy avoidance
+and a different search algorithm are not interpreter-only speedups. Results
+are bounded benchmark observations, not full-application promises, and
+small differences require more measurement.
 
 ## Fewer opportunities for races
 

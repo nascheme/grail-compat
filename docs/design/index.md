@@ -23,5 +23,4 @@ read the [user documentation](../index.md).
   outside the core scope.
 
 These files are the source of the design docs. The "Project Grail" Claude
-Doc mirrors them for sharing and comments; edit here first. References to
-`docs/implementation/` and `bench/` are paths in the Project Grail workspace.
+Doc mirrors them for sharing and comments; edit here first.

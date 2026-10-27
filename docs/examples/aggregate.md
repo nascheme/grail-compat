@@ -1,8 +1,7 @@
 ---
 sources:
-  - grail-compat/benchmarks/README.md
-  - grail-compat/benchmarks/aggregate/idiomatic.py
-  - bench/notes/aggregate.md
+  - benchmarks/README.md
+  - benchmarks/aggregate/idiomatic.py
 ---
 
 # Aggregate: fold privately, merge values
@@ -39,7 +38,7 @@ also be used as a pure Atom.swap callback.
 Read `benchmarks/aggregate/idiomatic.py`: `pairs` uses global input indices,
 `split` partitions ranges, `fold` owns local scratch, and `merge` is
 `PMap.update_with` with addition. There is no `upstream.py` for aggregate;
-the baseline snippet is in the parent `bench/harness/measure_aggregate.py`.
+the serial baseline is a local dict loop accumulating `sums[key] += value`.
 
 An Atom update per pair would be correct with a pure callback but adds shared
 contention and allocation. It is not the recommended reduction shape.
@@ -49,9 +48,6 @@ not when only a final total is needed.
 Integer addition here is associative. For floats, fixed merge order alone
 does not guarantee the same answer if worker count changes the partition.
 This pattern is not a replacement for a concurrent cache or deduplication map.
-
-The parent `bench/notes/aggregate.md` explains the original motivation.
-Its request for `update_with` is historical: the method exists now.
 
 See [concurrency](../guide/concurrency.md), [PMap reference](../reference/pmap.md),
 [atoms](../guide/atoms.md).

@@ -76,9 +76,9 @@ module.  The same files build into the interpreter with `Py_BUILD_CORE`
 (`grail._pds_native`).  Likewise `tests/test_grail*.py` are the prototype's
 `Lib/test/test_grail*.py`, except its native-only tests
 (`test_grail_native.py`, the specialization and JIT tests).  Copy both to
-the prototype with
+a separately cloned prototype checkout with
 
-    python tools/sync_to_cpython_grail.py ../cpython-grail
+    uv run tools/sync_to_cpython_grail.py /path/to/cpython-grail
 
 and do not edit the copies there.
 

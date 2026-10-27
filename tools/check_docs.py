@@ -1,8 +1,8 @@
 """Check executable docs, source paths, and public-name reference coverage.
 
 Run from any directory with the intended interpreter. No third-party imports
-are needed beyond the grail implementation being tested. Source paths assume
-the parent Project Grail workspace; use --workspace for another source root.
+are needed beyond the grail implementation being tested. Source paths are
+relative to this repository; no other checkout is required.
 Name coverage is a tripwire, not a semantic completeness proof.
 """
 
@@ -53,7 +53,7 @@ def check_reference():
     return errors
 
 
-def check_page(path, workspace):
+def check_page(path, source_root):
     errors = []
     text = path.read_text(encoding="utf-8")
     relative = path.relative_to(ROOT)
@@ -69,8 +69,11 @@ def check_page(path, workspace):
     if not sources:
         errors.append(f"{relative}: empty sources")
     for source in sources:
-        source_path = workspace / source.split("#", 1)[0]
-        if not source_path.is_file():
+        source_name = Path(source.split("#", 1)[0])
+        source_path = (source_root / source_name).resolve()
+        if source_name.is_absolute() or not source_path.is_relative_to(source_root.resolve()):
+            errors.append(f"{relative}: source must stay inside the repository: {source}")
+        elif not source_path.is_file():
             errors.append(f"{relative}: missing source {source}")
     if not re.search(r"^    >>> ", body, re.MULTILINE):
         errors.append(f"{relative}: no executable example")
@@ -82,7 +85,8 @@ def check_page(path, workspace):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", type=Path, default=ROOT.parent)
+    parser.add_argument("--source-root", type=Path, default=ROOT,
+                        help="repository root for source-path checks (default: this checkout)")
     parser.add_argument("--no-doctest", action="store_true")
     args = parser.parse_args()
     files = sorted((ROOT / "docs").rglob("*.md"))
@@ -93,7 +97,7 @@ def main():
         # The design docs are drafts, not user docs: the front-matter,
         # example and style rules do not apply to them.
         if not path.is_relative_to(design):
-            errors.extend(check_page(path, args.workspace))
+            errors.extend(check_page(path, args.source_root))
         if not args.no_doctest:
             result = doctest.testfile(
                 str(path), module_relative=False, encoding="utf-8",

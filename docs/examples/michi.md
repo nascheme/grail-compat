@@ -1,10 +1,9 @@
 ---
 sources:
-  - grail-compat/benchmarks/README.md
-  - grail-compat/benchmarks/michi/idiomatic.py
-  - bench/notes/michi.md
-  - grail-compat/benchmarks/michi/upstream.py
-  - grail-compat/benchmarks/michi/hybrid.py
+  - benchmarks/README.md
+  - benchmarks/michi/idiomatic.py
+  - benchmarks/michi/upstream.py
+  - benchmarks/michi/hybrid.py
 ---
 
 # Michi: immutable trees and explicit randomness
@@ -57,9 +56,8 @@ Use the single-thread exact mode for differential comparison with upstream.
 Do not promise thread-count-independent moves from task-local seeding alone.
 
 `benchmarks/michi/upstream.py` is the original program.
-`benchmarks/michi/hybrid.py` keeps mutable tree nodes. The parent
-`bench/notes/michi.md` describes that older representation; the current
-idiomatic source describes path copying. Large pattern files are optional
+`benchmarks/michi/hybrid.py` keeps mutable tree nodes; the current idiomatic
+source describes path copying. Large pattern files are optional
 external data, downloaded by `benchmarks/michi/fetch_patterns.py`, not by the
 documentation tests.
 

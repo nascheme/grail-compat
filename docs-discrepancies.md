@@ -19,36 +19,25 @@ behavior as part of the documentation pass.
 | No registration unary fallback | Facade deviation list | Unregistered native record unary operations currently recurse; compatibility raises TypeError. Docs advise registering before use, not relying on either failure mode. |
 | Substitutability wording | Overview/design principles and records substitutability section | Some overview text says this is not a public function; both facades export `substitutable` for debugging/tests. |
 
-## Historical benchmark notes versus current code
+## Benchmark documentation
 
-- `../bench/notes/richards.md` describes the local mutable-list kernel now kept
-  in `benchmarks/richards/hybrid.py`. The current idiomatic kernel is an
-  immutable Kernel/Task snapshot transition.
-- `../bench/notes/deltablue.md` describes the mutable-list Solver now in
-  `hybrid.py`. The current idiomatic Solver uses PVector snapshots and private
-  transient batches.
-- `../bench/notes/michi.md` describes mutable Node structs now in `hybrid.py`.
-  Current idiomatic nodes are records, updated by child-index paths.
-- `../bench/notes/aggregate.md` asks for PMap.update_with; it is implemented.
-- Do not publish historical projected speedups or claims that records already
-  avoid all shared reference-count writes/GC tracking. They are not API
-  guarantees or documentation-pass measurements.
+Current program designs are in `benchmarks/README.md` and the runnable source;
+measured native results and limitations are summarized in
+`docs/design/06-cpython-prototype.md`. Do not publish projected speedups or
+claims that records avoid all shared reference-count writes/GC tracking.
 
 ## First-pass scope and open decisions
 
-- Hosting and stable source-browser URLs are unknown: neither this checkout
-  nor the parent checkout has a configured remote. Background and benchmark
-  pages give exact workspace paths instead of inventing public URLs. Replace
-  these with links once the repository/hosting location is decided.
+- The published site is https://python.ca/cpython-grail. Source paths refer
+  to this repository; native source links use the public CPython fork.
 - The tutorial uses a shop inventory, exact integer counts, and a deliberately
   simple Item + int operator. It is runnable page by page; review whether the
   operator feels natural enough for the introductory story.
 - Benchmark pages are design walkthroughs with small executable adaptations,
   not full differential runs or literal side-by-side copies of entire programs.
   A later pass can deepen the annotated source excerpts after source URLs exist.
-- A standalone grail-compat checkout can build and doctest the site. Validating
-  sources front matter also needs the parent Project Grail sources (or
-  `tools/check_docs.py --workspace PATH`).
+- A standalone grail-compat checkout can build, doctest and validate all source
+  metadata. Documentation must not depend on a separate development workspace.
 - The reference name checker checks exports, public attributes of exported
   types/ops, and the Generic object's public attributes against inline-code
   mentions on their reference pages. This is not proof of semantic completeness;
@@ -67,8 +56,8 @@ behavior as part of the documentation pass.
 - `uv run tools/check_docs.py`: 211 doctest statements pass with compatibility
   native PMap/PSet, and source/style/reference checks pass.
 - Same checker with `GRAIL_PURE=1`: 211 statements and all checks pass.
-- `../cpython-proto/build-grail/python tools/check_docs.py`: 211 statements and
-  all checks pass against native Grail, without pytest or compatibility imports.
+- The checker can also run with a separately built native Grail interpreter,
+  without pytest or compatibility imports.
 
 ## Record-update naming follow-up
 

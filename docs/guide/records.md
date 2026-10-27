@@ -1,9 +1,9 @@
 ---
 sources:
-  - grail-compat/docs/design/01-pep-draft-records.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/tests/test_grail.py
+  - docs/design/01-pep-draft-records.md
+  - src/grail/__init__.py
+  - src/grail/_core.py
+  - tests/test_grail.py
 ---
 
 # Declare and use records

@@ -1,10 +1,9 @@
 ---
 sources:
-  - grail-compat/benchmarks/README.md
-  - grail-compat/benchmarks/richards/idiomatic.py
-  - bench/notes/richards.md
-  - grail-compat/benchmarks/richards/upstream.py
-  - grail-compat/benchmarks/richards/hybrid.py
+  - benchmarks/README.md
+  - benchmarks/richards/idiomatic.py
+  - benchmarks/richards/upstream.py
+  - benchmarks/richards/hybrid.py
 ---
 
 # Richards: a pure transition scheduler
@@ -52,9 +51,7 @@ Each scheduler step depends on the previous step. Running independent complete
 iterations concurrently measures throughput, not latency of one simulation.
 Records do not remove that dependency.
 
-The parent `bench/notes/richards.md` describes the earlier list-based scheduler.
-Use the current source and benchmark README for the snapshot design; do not
-copy the old note's representation claims into new code.
+Use the current source and benchmark README for the snapshot design.
 
 See [porting](../guide/porting.md), [records](../guide/records.md),
 [generic functions](../guide/generic-functions.md).

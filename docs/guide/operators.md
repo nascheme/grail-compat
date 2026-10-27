@@ -1,9 +1,9 @@
 ---
 sources:
-  - grail-compat/docs/design/02-pep-draft-generic-functions.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/tests/test_grail.py
+  - docs/design/02-pep-draft-generic-functions.md
+  - src/grail/__init__.py
+  - src/grail/_core.py
+  - tests/test_grail.py
 ---
 
 # Add arithmetic to records

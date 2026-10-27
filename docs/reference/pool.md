@@ -1,9 +1,9 @@
 ---
 sources:
-  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
-  - grail-compat/src/grail/_pool.py
-  - grail-compat/src/grail/_parallel.py
-  - grail-compat/tests/test_grail_pool.py
+  - docs/design/07-appendix-concurrency-toolkit.md
+  - src/grail/_pool.py
+  - src/grail/_parallel.py
+  - tests/test_grail_pool.py
 ---
 
 # Pool reference

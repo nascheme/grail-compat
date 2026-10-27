@@ -1,10 +1,10 @@
 ---
 sources:
-  - grail-compat/README.md
-  - grail-compat/pyproject.toml
-  - grail-compat/tools/sync_to_cpython_grail.py
-  - grail-compat/tools/check_docs.py
-  - grail-compat/zensical.toml
+  - README.md
+  - pyproject.toml
+  - tools/sync_to_cpython_grail.py
+  - tools/check_docs.py
+  - zensical.toml
 ---
 
 # Build, test and improve the docs
@@ -30,21 +30,22 @@ The project builds with meson-python. Older Pythons build a pure-Python wheel;
 `-Csetup-args=-Dnative=disabled` disables the extension explicitly. See the
 checkout README for debug builds, sanitizer runs and leak tests.
 
-The native interpreter belongs to the sibling cpython-grail checkout, a
-clone of the `grail` branch of [github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail).
-Follow that checkout's build notes for its free-threaded configuration.
+To test the native implementation, separately clone the `grail` branch of
+[github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail).
+Follow its `GRAIL.md` build notes and set `NATIVE` to your built interpreter:
 Do not install grail-compat into it. Its unittest runner can run the shared
 contract tests without pytest:
 
 ```sh
-../cpython-grail/build-grail/python -m unittest discover -s tests -p 'test_grail*.py'
+NATIVE=/path/to/cpython-grail/build/python
+uv run --no-project --python "$NATIVE" python -m unittest discover -s tests -p 'test_grail*.py'
 ```
 
 Shared C map/set code is edited in `src/grail/_c/`, not in prototype copies.
 From grail-compat, synchronize with:
 
 ```sh
-uv run tools/sync_to_cpython_grail.py ../cpython-grail
+uv run tools/sync_to_cpython_grail.py /path/to/cpython-grail
 ```
 
 ## Documentation
@@ -55,7 +56,7 @@ uv run zensical serve
 uv run pytest --doctest-glob='*.md' docs/
 GRAIL_PURE=1 uv run pytest --doctest-glob='*.md' docs/
 uv run tools/check_docs.py
-../cpython-grail/build-grail/python tools/check_docs.py
+uv run --no-project --python "$NATIVE" python tools/check_docs.py
 ```
 
 The last two commands run a standard-library-only checker: examples, source
@@ -66,8 +67,9 @@ prompts, avoiding fence markers being interpreted as expected output.
 Shell blocks are setup instructions, not Python doctests; substitute your
 local paths before running installation commands.
 
-Each page's front matter lists source paths relative to the parent Project
-Grail workspace. Review pages when their listed tests, implementation or
+Each page's front matter lists source paths relative to this repository.
+The checker needs only this checkout, including when testing a native
+interpreter built elsewhere. Review pages when their listed tests, implementation or
 design sources change. Tests decide what the docs may claim. Keep unresolved
 design differences in `docs-discrepancies.md`, outside the published site.
 Hosting and stable source-browser URLs remain to be configured.

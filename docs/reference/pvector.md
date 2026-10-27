@@ -1,8 +1,8 @@
 ---
 sources:
-  - grail-compat/docs/design/05-design-persistent-collections.md
-  - grail-compat/src/grail/_vector.py
-  - grail-compat/tests/test_grail_vector.py
+  - docs/design/05-design-persistent-collections.md
+  - src/grail/_vector.py
+  - tests/test_grail_vector.py
 ---
 
 # PVector reference

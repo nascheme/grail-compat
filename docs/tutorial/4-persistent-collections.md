@@ -1,16 +1,13 @@
 ---
 sources:
-  - grail-compat/docs/design/01-pep-draft-records.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/tests/test_grail.py
-  - grail-compat/docs/design/02-pep-draft-generic-functions.md
-  - grail-compat/src/grail/__init__.py
-  - grail-compat/src/grail/_core.py
-  - grail-compat/tests/test_grail.py
-  - grail-compat/docs/design/05-design-persistent-collections.md
-  - grail-compat/src/grail/_pds.py
-  - grail-compat/tests/test_grail_pds.py
+  - docs/design/01-pep-draft-records.md
+  - docs/design/02-pep-draft-generic-functions.md
+  - src/grail/__init__.py
+  - src/grail/_core.py
+  - tests/test_grail.py
+  - docs/design/05-design-persistent-collections.md
+  - src/grail/_pds.py
+  - tests/test_grail_pds.py
 ---
 
 # 4. Store inventory snapshots

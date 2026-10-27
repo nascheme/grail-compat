@@ -1,8 +1,8 @@
 ---
 sources:
-  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
-  - grail-compat/src/grail/_atom.py
-  - grail-compat/tests/test_grail_atom.py
+  - docs/design/07-appendix-concurrency-toolkit.md
+  - src/grail/_atom.py
+  - tests/test_grail_atom.py
 ---
 
 # Atom reference

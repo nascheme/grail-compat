@@ -1,12 +1,12 @@
 ---
 sources:
-  - grail-compat/docs/design/00-project-grail-overview.md
-  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
-  - grail-compat/src/grail/_atom.py
-  - grail-compat/tests/test_grail_atom.py
-  - grail-compat/docs/design/05-design-persistent-collections.md
-  - grail-compat/src/grail/_vector.py
-  - grail-compat/tests/test_grail_vector.py
+  - docs/design/00-project-grail-overview.md
+  - docs/design/07-appendix-concurrency-toolkit.md
+  - src/grail/_atom.py
+  - tests/test_grail_atom.py
+  - docs/design/05-design-persistent-collections.md
+  - src/grail/_vector.py
+  - tests/test_grail_vector.py
 ---
 
 # Share values across threads

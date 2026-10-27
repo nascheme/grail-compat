@@ -1,10 +1,9 @@
 ---
 sources:
-  - grail-compat/benchmarks/README.md
-  - grail-compat/benchmarks/deltablue/idiomatic.py
-  - bench/notes/deltablue.md
-  - grail-compat/benchmarks/deltablue/upstream.py
-  - grail-compat/benchmarks/deltablue/hybrid.py
+  - benchmarks/README.md
+  - benchmarks/deltablue/idiomatic.py
+  - benchmarks/deltablue/upstream.py
+  - benchmarks/deltablue/hybrid.py
 ---
 
 # DeltaBlue: graph IDs and batches
@@ -48,7 +47,6 @@ Batch is deliberately not shareable while its builders are open.
 
 `benchmarks/deltablue/upstream.py` is the class-based algorithm.
 `benchmarks/deltablue/hybrid.py` keeps a record of mutable lists.
-The parent `bench/notes/deltablue.md` describes that earlier hybrid design.
 The idiomatic source and benchmark README describe the current snapshot port.
 
 The chain and projection tests are independent and can run concurrently;

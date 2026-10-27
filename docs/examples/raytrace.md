@@ -1,9 +1,8 @@
 ---
 sources:
-  - grail-compat/benchmarks/README.md
-  - grail-compat/benchmarks/raytrace/idiomatic.py
-  - bench/notes/raytrace.md
-  - grail-compat/benchmarks/raytrace/upstream.py
+  - benchmarks/README.md
+  - benchmarks/raytrace/idiomatic.py
+  - benchmarks/raytrace/upstream.py
 ---
 
 # Ray tracer: data and open operations
@@ -51,8 +50,7 @@ remain a value field. Open extension and a closed value whitelist are separate
 concerns.
 
 The port deliberately retains upstream arithmetic quirks so pixels match.
-Do not treat this teaching tracer as a corrected physical renderer. The
-parent `bench/notes/raytrace.md` records the comparison and historical estimates;
-those estimates are not current performance guarantees.
+Do not treat this teaching tracer as a corrected physical renderer.
+See [prototype status](../design/06-cpython-prototype.md) for current measurements.
 
 See [operators](../guide/operators.md), [generic functions](../guide/generic-functions.md).

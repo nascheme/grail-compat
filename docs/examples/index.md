@@ -1,6 +1,6 @@
 ---
 sources:
-  - grail-compat/benchmarks/README.md
+  - benchmarks/README.md
 ---
 
 # Worked program designs
@@ -20,10 +20,10 @@ benchmark workload.
 - [Aggregate](aggregate.md): private folds and a pure merge.
 - [Michi](michi.md): path-copying trees and task-local randomness.
 
-Find the complete programs under `grail-compat/benchmarks/`. Each directory
+Find the complete programs under `benchmarks/` in the grail-compat repository. Each directory
 has `idiomatic.py`; most also have `upstream.py`. Some keep an earlier
 `hybrid.py` with private mutable control state. Aggregate has no vendored
-upstream file: its short baseline is in the parent benchmark harness.
+upstream file: its serial baseline accumulates values in a local dict.
 The benchmark README records upstream provenance and licenses.
 
 From the grail-compat checkout you can run the benchmark correctness suite:

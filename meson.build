@@ -34,6 +34,7 @@ py.install_sources(
   'src/grail/_atom.py',
   'src/grail/_core.py',
   'src/grail/_numvec.py',
+  'src/grail/_parallel.py',
   'src/grail/_pds.py',
   'src/grail/_pool.py',
   'src/grail/_vector.py',

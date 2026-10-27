@@ -39,6 +39,7 @@ from collections import namedtuple as _namedtuple
 from . import _core
 from ._atom import Atom
 from ._pool import Pool
+from ._parallel import pmap, parallel_reduce
 from ._vector import PVector
 from ._numvec import FloatVector, IntVector
 
@@ -86,7 +87,7 @@ backend = _core.backend
 __all__ = ["record", "field", "replace", "generic", "ops", "repr", "eq", "hash",
            "record_fields", "record_values", "is_value_record", "substitutable",
            "PMap", "PSet", "PVector", "FloatVector", "IntVector", "Atom",
-           "Pool", "pool"]
+           "Pool", "pool", "pmap", "parallel_reduce"]
 
 _MISSING = object()
 _Field = _namedtuple("_Field", "default factory")

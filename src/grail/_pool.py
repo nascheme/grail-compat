@@ -49,6 +49,43 @@ _HELP_POLL = 0.001
 _worker = threading.local()
 
 
+def _make_defer_refcount():
+    """Return _defer_refcount(func), which enables deferred reference
+    counting on a Python function shared by pool workers.
+
+    Called from many workers, a function's reference count would be written
+    by each of them on every call.  With deferred reference counting it is
+    not, but the function, and what it captures, is freed by the GC rather
+    than when its last reference goes.  Module-level functions are deferred
+    already.  Only free-threaded 3.14+ has the C API, reached here through
+    ctypes; elsewhere this does nothing.
+    """
+    def nothing(func):
+        return False
+    if getattr(_sys, "_is_gil_enabled", lambda: True)():
+        return nothing
+    try:
+        import ctypes
+        enable = ctypes.pythonapi.PyUnstable_Object_EnableDeferredRefcount
+    except (ImportError, AttributeError):
+        return nothing
+    enable.argtypes = [ctypes.py_object]
+    enable.restype = ctypes.c_int
+    import types
+    import weakref
+    seen = weakref.WeakSet()     # a ctypes call costs about 1 us
+
+    def _defer_refcount(func):
+        if type(func) is not types.FunctionType or func in seen:
+            return False
+        seen.add(func)
+        return bool(enable(func))
+    return _defer_refcount
+
+
+_defer_refcount = _make_defer_refcount()
+
+
 class _Core:
     """The state shared by a Pool, its workers and its maps.
 
@@ -159,6 +196,7 @@ class _Core:
 class _Map:
     def __init__(self, core, func, iterables, buffersize, ordered):
         self.core = core
+        _defer_refcount(func)
         self.func = func
         self.iters = [iter(it) for it in iterables]
         self.buffersize = buffersize
@@ -554,6 +592,7 @@ class Scope:
             raise RuntimeError("cannot spawn after the pool was shut down")
         if self._cancelled:
             return None
+        _defer_refcount(func)
         with self._cond:
             self._pending += 1
         self._core.push_task((self, func, args, kwargs, contextvars.copy_context()))

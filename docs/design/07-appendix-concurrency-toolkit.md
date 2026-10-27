@@ -4,7 +4,7 @@
 
 Oct 25, 2026 · @Neil Schemenauer
 
-*Status: an appendix, outside Grail's core scope. API and implementation proposals motivated by the benchmark workloads, not shipped toolkit features. The native prototype currently provides a boxed `Atom` with lock-free `value`, `reset` and identity-based `compare_and_set`, a retrying `swap`, and integer `add`, and a C thread pool, `grail.Pool`, with spinningjenny's `map` and a work-stealing `scope` (see `docs/implementation/pool.md`); it has no `Promise`, seed helper, `pmap` or `parallel_reduce`.*
+*Status: an appendix, outside Grail's core scope. API and implementation proposals motivated by the benchmark workloads, not shipped toolkit features. The native prototype currently provides a boxed `Atom` with lock-free `value`, `reset` and identity-based `compare_and_set`, a retrying `swap`, and integer `add`, and a C thread pool, `grail.Pool`, with spinningjenny's `map`, a work-stealing `scope`, and the `pmap` and `parallel_reduce` helpers (see `docs/implementation/pool.md`); it has no `Promise` or seed helper.*
 
 **Relation to the core design.** Grail itself needs only two small pieces of this: `Atom.add`, which belongs in the core Atom, and naming `queue.SimpleQueue` as safe to share. Everything else here (`Promise`, random streams, the executor) is library code that needs no language or VM support. It shows what can be built on the Grail foundation of values and atoms, and would ship in the `grail` package or a separate one, not in a PEP.
 
@@ -85,7 +85,7 @@ The historical study found no license file in that checkout. Recheck the current
 4. **Errors.** The first exception in a scope cancels the tasks not yet started. Scope exit raises all task errors in one `BaseExceptionGroup`, as `asyncio.TaskGroup` does, so `except*` handles them. `map` keeps spinningjenny's per-item delivery, so the error appears when its result is reached.
 5. **Helpers on top:**
    - `grail.pmap(f, items, chunk=None)`: ordered, chunked, and serial below a size threshold, so small inputs skip the pool.
-   - `grail.parallel_reduce(fold, combine, items, init)`: folds chunks locally and combines in chunk order, so scheduling does not change results for a fixed partition and merge order. Worker-count independence needs a partition independent of worker count, or a genuinely associative `combine`; floating-point addition is not associative.
+   - `grail.parallel_reduce(fold, combine, items, init)`: folds chunks locally and combines adjacent results in order, as a balanced tree, so scheduling does not change results for a fixed partition and merge order. Worker-count independence needs a partition independent of worker count, or a genuinely associative `combine`; floating-point addition is not associative. The implementation's default partition (64 chunks) depends only on the input length.
    - Both pass a per-task seed when asked, via `spawn_seeds`.
 6. **Values in, values out.** The docs should state the contract: task arguments and results should be values (records, tuples, persistent collections), and changing state should live in atoms or promises. The executor does not enforce this, but linters can flag a mutable argument shared by many tasks.
 

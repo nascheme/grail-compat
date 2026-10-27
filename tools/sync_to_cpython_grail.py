@@ -3,7 +3,8 @@
     python tools/sync_to_cpython_grail.py ../cpython-grail
 
 The C files land in Modules/_grail/, where Modules/Setup.stdlib.in builds
-them as the _grail_pds module.  The tests (tests/test_grail*.py), which
+them as the _grail_pds module.  The pure-Python modules shared by both
+implementations (PY_FILES) land in Lib/grail/.  The tests (tests/test_grail*.py), which
 specify Grail's behaviour for every implementation, land in Lib/test/.
 grail-compat is the source of truth: the copies in the prototype are
 overwritten, never edited.  The prototype's own tests of native internals
@@ -15,10 +16,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 C_FILES = ["grail_compat.h", "grail_hamt.h", "grail_hamt.c", "pds.c"]
+PY_FILES = ["_parallel.py"]
 C_HEADER = ("/* Copied from grail-compat src/grail/_c/ by tools/sync_to_cpython_grail.py;"
             " do not edit here. */\n")
 TEST_HEADER = ("# Copied from grail-compat tests/ by tools/sync_to_cpython_grail.py;"
                " do not edit here.\n")
+PY_HEADER = ("# Copied from grail-compat src/grail/ by tools/sync_to_cpython_grail.py;"
+             " do not edit here.\n")
 
 
 def copy(src, dest, header):
@@ -36,6 +40,8 @@ def main(argv):
     modules.mkdir(exist_ok=True)
     for name in C_FILES:
         copy(ROOT / "src" / "grail" / "_c" / name, modules / name, C_HEADER)
+    for name in PY_FILES:
+        copy(ROOT / "src" / "grail" / name, proto / "Lib" / "grail" / name, PY_HEADER)
     for test in sorted((ROOT / "tests").glob("test_grail*.py")):
         copy(test, proto / "Lib" / "test" / test.name, TEST_HEADER)
 

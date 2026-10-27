@@ -1,5 +1,3 @@
-<!-- Copied from the Project Grail docs/design/ by tools/copy_design_docs.py; do not edit here. -->
-
 # Project Grail
 
 Oct 25, 2026 · @Neil Schemenauer

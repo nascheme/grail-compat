@@ -1,6 +1,6 @@
 ---
 sources:
-  - docs/design/07-appendix-concurrency-toolkit.md
+  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
   - grail-compat/src/grail/_pool.py
   - grail-compat/src/grail/_parallel.py
   - grail-compat/tests/test_grail_pool.py

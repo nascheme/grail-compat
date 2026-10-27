@@ -22,5 +22,6 @@ read the [user documentation](../index.md).
 - [Appendix: Concurrency toolkit](07-appendix-concurrency-toolkit.md):
   outside the core scope.
 
-The pages are copied from the Project Grail workspace (`docs/design/`) by
-`tools/copy_design_docs.py`; edit them there.
+These files are the source of the design docs. The "Project Grail" Claude
+Doc mirrors them for sharing and comments; edit here first. References to
+`docs/implementation/` and `bench/` are paths in the Project Grail workspace.

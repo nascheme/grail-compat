@@ -1,5 +1,3 @@
-<!-- Copied from the Project Grail docs/design/ by tools/copy_design_docs.py; do not edit here. -->
-
 # PEP draft: C API
 
 Oct 25, 2026 · @Neil Schemenauer

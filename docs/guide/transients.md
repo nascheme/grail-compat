@@ -1,12 +1,12 @@
 ---
 sources:
-  - docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
   - grail-compat/src/grail/_pds.py
   - grail-compat/tests/test_grail_pds.py
-  - docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
   - grail-compat/src/grail/_vector.py
   - grail-compat/tests/test_grail_vector.py
-  - docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
   - grail-compat/src/grail/_numvec.py
   - grail-compat/tests/test_grail_numvec.py
 ---

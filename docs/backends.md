@@ -5,11 +5,12 @@ sources:
   - cpython-grail/Lib/grail/__init__.py
   - grail-compat/src/grail/_core.py
   - grail-compat/src/grail/_atom.py
+  - grail-compat/src/grail/_pool.py
   - grail-compat/src/grail/_pds.py
   - grail-compat/src/grail/_vector.py
   - grail-compat/tests/test_grail.py
   - grail-compat/tests/test_grail_atom.py
-  - docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
   - grail-compat/src/grail/_numvec.py
   - grail-compat/tests/test_grail_numvec.py
 ---
@@ -59,6 +60,11 @@ record, vector, or Atom implementation, and has no such role in the prototype.
 - Compatibility Atom operations use a per-cell lock. Native value reads use a
   different synchronization strategy. User-facing atomic operations and
   identity-CAS semantics are shared; lock-free performance is not.
+- The compatibility `Pool` is pure Python on `threading`: about 0.7-0.9 us
+  of overhead per task on free-threaded 3.14, against about 0.15 us for the
+  native C pool. With the GIL it only helps tasks that release the GIL.
+  Before Python 3.11, which has no exception groups, a failed scope raises
+  its first task error instead of an exception group.
 
 Do not use compatibility timings to predict native runtime performance.
 Free-threaded execution is needed for CPU parallelism, but does not guarantee

@@ -1,10 +1,10 @@
 ---
 sources:
-  - docs/design/00-project-grail-overview.md
-  - docs/design/01-pep-draft-records.md
-  - docs/design/02-pep-draft-generic-functions.md
-  - docs/design/05-design-persistent-collections.md
-  - docs/design/06-cpython-prototype.md
+  - grail-compat/docs/design/00-project-grail-overview.md
+  - grail-compat/docs/design/01-pep-draft-records.md
+  - grail-compat/docs/design/02-pep-draft-generic-functions.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/06-cpython-prototype.md
   - bench/results/20261026-111345-5c74a29e4ba/README.md
   - bench/results/20261026-111345-5c74a29e4ba/ft/results.md
   - grail-compat/src/grail/__init__.py

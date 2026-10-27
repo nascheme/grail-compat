@@ -90,8 +90,8 @@ def main():
     failed = attempted = 0
     design = ROOT / "docs" / "design"
     for path in files:
-        # The design docs are copies of drafts, not user docs; their
-        # source and style rules are kept upstream.
+        # The design docs are drafts, not user docs: the front-matter,
+        # example and style rules do not apply to them.
         if not path.is_relative_to(design):
             errors.extend(check_page(path, args.workspace))
         if not args.no_doctest:

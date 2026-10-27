@@ -1,6 +1,6 @@
 ---
 sources:
-  - docs/design/02-pep-draft-generic-functions.md
+  - grail-compat/docs/design/02-pep-draft-generic-functions.md
   - grail-compat/src/grail/__init__.py
   - grail-compat/src/grail/_core.py
   - grail-compat/tests/test_grail.py

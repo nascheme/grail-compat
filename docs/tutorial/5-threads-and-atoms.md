@@ -1,17 +1,17 @@
 ---
 sources:
-  - docs/design/01-pep-draft-records.md
+  - grail-compat/docs/design/01-pep-draft-records.md
   - grail-compat/src/grail/__init__.py
   - grail-compat/src/grail/_core.py
   - grail-compat/tests/test_grail.py
-  - docs/design/02-pep-draft-generic-functions.md
+  - grail-compat/docs/design/02-pep-draft-generic-functions.md
   - grail-compat/src/grail/__init__.py
   - grail-compat/src/grail/_core.py
   - grail-compat/tests/test_grail.py
-  - docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
   - grail-compat/src/grail/_pds.py
   - grail-compat/tests/test_grail_pds.py
-  - docs/design/07-appendix-concurrency-toolkit.md
+  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
   - grail-compat/src/grail/_atom.py
   - grail-compat/tests/test_grail_atom.py
 ---
@@ -38,11 +38,11 @@ the pure restock function so a competing update does not get overwritten.
     >>> stock = PMap({"tea": Item("tea", 2)})
     >>> def restock(stock, name, amount):
     ...     return stock.set(name, stock[name] + amount)
-    >>> from concurrent.futures import ThreadPoolExecutor
+    >>> from grail import Pool
     >>> inventory = Atom(stock)
     >>> def receive(amount):
     ...     inventory.swap(restock, "tea", amount)
-    >>> with ThreadPoolExecutor(max_workers=2) as pool:
+    >>> with Pool(2) as pool:
     ...     completed = list(pool.map(receive, [1, 2, 3]))
     >>> snapshot = inventory.value
     >>> describe(snapshot["tea"])

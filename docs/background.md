@@ -1,12 +1,12 @@
 ---
 sources:
-  - docs/design/00-project-grail-overview.md
-  - docs/design/01-pep-draft-records.md
-  - docs/design/02-pep-draft-generic-functions.md
-  - docs/design/03-pep-draft-record-syntax.md
-  - docs/design/05-design-persistent-collections.md
+  - grail-compat/docs/design/00-project-grail-overview.md
+  - grail-compat/docs/design/01-pep-draft-records.md
+  - grail-compat/docs/design/02-pep-draft-generic-functions.md
+  - grail-compat/docs/design/03-pep-draft-record-syntax.md
+  - grail-compat/docs/design/05-design-persistent-collections.md
   - grail-compat/src/grail/__init__.py
-  - docs/design/07-appendix-concurrency-toolkit.md
+  - grail-compat/docs/design/07-appendix-concurrency-toolkit.md
 ---
 
 # Background and planned work
@@ -55,20 +55,21 @@ atoms or external systems, and swap callbacks can retry.
 
 A dedicated `record` statement and later sum-type syntax are proposals, not
 syntax accepted by this package. Promise, Grail-specific channels, random
-stream helpers and an executor are also proposals, not exported APIs.
-Use `queue.SimpleQueue` and standard-library executors today. A stable opaque
+stream helpers are also proposals, not exported APIs; use `queue.SimpleQueue`
+and an explicit `random.Random` per task today. The executor is available as
+[`grail.Pool`](reference/pool.md), with `pmap` and `parallel_reduce`. A stable opaque
 C API is separate design work; this site covers only the Python API.
 
 ## Design sources
 
 The source-of-truth drafts live in the parent Project Grail checkout:
 
-- `docs/design/00-project-grail-overview.md`: overview and memory model.
-- `docs/design/01-pep-draft-records.md`: record rationale and proposed semantics.
-- `docs/design/02-pep-draft-generic-functions.md`: open generic protocols.
-- `docs/design/03-pep-draft-record-syntax.md`: proposed record statement.
-- `docs/design/05-design-persistent-collections.md`: collections and typed conformance.
-- `docs/design/07-appendix-concurrency-toolkit.md`: planned library helpers.
+- `grail-compat/docs/design/00-project-grail-overview.md`: overview and memory model.
+- `grail-compat/docs/design/01-pep-draft-records.md`: record rationale and proposed semantics.
+- `grail-compat/docs/design/02-pep-draft-generic-functions.md`: open generic protocols.
+- `grail-compat/docs/design/03-pep-draft-record-syntax.md`: proposed record statement.
+- `grail-compat/docs/design/05-design-persistent-collections.md`: collections and typed conformance.
+- `grail-compat/docs/design/07-appendix-concurrency-toolkit.md`: planned library helpers.
 
 Public source URLs are not configured yet. These paths are navigation aids
 for the workspace checkout, not claims that the proposals ship. See

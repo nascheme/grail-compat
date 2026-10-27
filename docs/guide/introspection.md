@@ -1,6 +1,6 @@
 ---
 sources:
-  - docs/design/01-pep-draft-records.md
+  - grail-compat/docs/design/01-pep-draft-records.md
   - grail-compat/src/grail/__init__.py
   - grail-compat/src/grail/_core.py
   - grail-compat/tests/test_grail.py

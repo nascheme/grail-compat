@@ -64,6 +64,15 @@ class NativeTests(unittest.TestCase):
                     self.assertIn("grail.record", names,
                                   f"{path.relative_to(BENCHMARKS)}: {node.name}")
 
+    def test_richards_mutate_matches(self):
+        # richards/mutate.py edits the same snapshots through grail.mutate.
+        variant = load_benchmark("richards", "mutate.py")
+        expected, actual = [], []
+        richards.schedule(expected.append)
+        result = variant.schedule(actual.append)
+        self.assertEqual(actual, expected)
+        self.assertTrue(variant.check(result))
+
     def test_generic_dispatch_and_keywords(self):
         data = richards.DeviceData(None)
         new, action = richards.step(data=data, packet=None)

@@ -24,6 +24,8 @@ folding. Pure record tests do not require SQLGlot.
     <name>/hybrid.py      an earlier, partly mutable conversion kept as a
                           comparison control (go, michi, deltablue, richards,
                           buildgraph)
+    richards/mutate.py    experimental: idiomatic.py's scheduler written with
+                          grail.mutate drafts (not timed by the harness)
     bpe_tokeniser/data/   the upstream training corpus
     buildgraph/challenge/, buildgraph/graphs/wide.json
                           vendored challenge code and one of its graphs
@@ -200,6 +202,8 @@ simulation.  The scheduler state is an immutable snapshot (a record of a
 persistent `PVector` table of `Task` records, the current task and counters)
 advanced by the pure `scheduler_step` with `PVector.set` and `grail.replace`.
 `hybrid.py` keeps the earlier scheduler over local mutable lists.
+`mutate.py` is the same transition written with a `grail.mutate` draft; drafts
+are pure Python, so it runs about 14x slower and is not timed.
 
 **sqlglot_port** - Partial SQLGlot 4.6.0 conversion: immutable expression trees,
 record-native simplification, Boolean normalization, compact SQL generation,

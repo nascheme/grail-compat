@@ -47,7 +47,8 @@ nav = [
 {"PVector reference" = "reference/pvector.md"},
 {"Numeric vectors reference" = "reference/numeric-vectors.md"},
 {"Atom reference" = "reference/atom.md"},
-{"Pool reference" = "reference/pool.md"}
+{"Pool reference" = "reference/pool.md"},
+{"Drafts reference" = "reference/mutate.md"}
 ]},
 {"Backends" = "backends.md"},
 {"Background" = "background.md"},

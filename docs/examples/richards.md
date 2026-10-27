@@ -4,6 +4,7 @@ sources:
   - benchmarks/richards/idiomatic.py
   - benchmarks/richards/upstream.py
   - benchmarks/richards/hybrid.py
+  - benchmarks/richards/mutate.py
 ---
 
 # Richards: a pure transition scheduler
@@ -44,6 +45,22 @@ same way, without mutating earlier packets.
 lists. It uses the same task operations but does not publish an intermediate
 scheduler state on every transition. The original class hierarchy is in
 `benchmarks/richards/upstream.py`.
+
+`benchmarks/richards/mutate.py` writes the same transition with an
+experimental [draft](../reference/mutate.md). `scheduler_step` assigns to
+the next snapshot as the mutable original assigns to its objects:
+
+    with grail.mutate(state) as s:
+        ...
+        case Send(p):
+            s.qpkt_count += 1
+            dest = s.tasks[p.ident]
+            dest.queue += (replace(p, ident=t),)
+        ...
+    return grail.finish(s)
+
+It produces the same trace and counters. Drafts are pure Python, so it is
+much slower than the `replace` version.
 
 ## What not to parallelize
 

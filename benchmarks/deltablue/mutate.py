@@ -82,6 +82,7 @@ import itertools
 from collections import deque
 
 import grail
+from grail import finish, mutate
 
 # Strengths: smaller is stronger.
 REQUIRED, STRONG_PREFERRED, PREFERRED, STRONG_DEFAULT, NORMAL, WEAK_DEFAULT, \
@@ -162,7 +163,7 @@ def open_draft(s: Solver):
     """A draft of s for one operation.  The constraint table is assigned
     back unchanged, so reads return the PVector itself rather than drafts
     of the (immutable) constraints."""
-    b = grail.mutate(s)
+    b = mutate(s)
     b.constraints = s.constraints
     return b
 
@@ -282,13 +283,13 @@ def is_satisfied(b, c: Constraint) -> bool:
 def add_constraint(s: Solver, c: Constraint) -> Solver:
     """s with c registered in the graph and incrementally re-satisfied."""
     assert c.cid == len(s.constraints)
-    with grail.mutate(s) as b:
+    with mutate(s) as b:
         b.constraints = s.constraints.append(c)
         b.direction.append(NONE)
         for v in variables(c):
             b.vars[v].constraints += (c,)
         incremental_add(b, c)
-    return grail.finish(b)
+    return finish(b)
 
 
 def next_cid(s: Solver) -> int:
@@ -314,7 +315,7 @@ def destroy_constraint(s: Solver, c: Constraint) -> Solver:
             incremental_remove(b, c)
         else:
             remove_from_graph(b, c)
-    return grail.finish(b)
+    return finish(b)
 
 
 def satisfy(b, c: Constraint, mark: int):
@@ -428,7 +429,7 @@ def extract_plan(s: Solver, constraints) -> tuple[Solver, tuple]:
     with open_draft(s) as b:
         plan = make_plan(b, [c for c in constraints
                              if type(c) is Edit and is_satisfied(b, c)])
-    return grail.finish(b), plan
+    return finish(b), plan
 
 
 def execute_plan(s: Solver, plan: tuple, var: int, value) -> Solver:
@@ -437,7 +438,7 @@ def execute_plan(s: Solver, plan: tuple, var: int, value) -> Solver:
         b.vars[var].value = value
         for c in plan:
             execute(b, c)
-    return grail.finish(b)
+    return finish(b)
 
 
 # ------------------------------------------------------------------ tests

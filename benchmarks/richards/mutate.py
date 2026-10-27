@@ -67,7 +67,7 @@ thread.
 """
 
 import grail
-from grail import PVector, replace
+from grail import PVector, finish, mutate, replace
 
 # Task ids.  Tasks are created in this order, and the scheduler's task list
 # is in reverse creation order, so the list is DEVB, DEVA, ..., IDLE.
@@ -265,7 +265,7 @@ def scheduler_step(state: SchedulerState, trace=None) -> SchedulerState:
             return replace(state, current=0)
     if trace is not None:
         trace(chr(ord("0") + t))
-    with grail.mutate(state) as s:
+    with mutate(state) as s:
         me = s.tasks[t]
         packet = None
         if task.waiting and task.queue:      # waiting with a packet: take it
@@ -294,7 +294,7 @@ def scheduler_step(state: SchedulerState, trace=None) -> SchedulerState:
                 if was_empty and PRIORITY[p.ident] > PRIORITY[t]:
                     t = p.ident
         s.current = t
-    return grail.finish(s)
+    return finish(s)
 
 
 def schedule(trace=None):

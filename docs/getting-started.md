@@ -53,6 +53,10 @@ installation. No package-index release is assumed by these instructions.
 
 ## Native prototype
 
+The prototype CPython implementation of Grail is the `grail` branch of
+[github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail). Build it as CPython, configured with
+`--disable-gil` for the free-threaded build.
+
 In the parent Project Grail workspace, the existing built interpreter is at
 `cpython-grail/build-grail/python`. Run your program with it, without installing
 grail-compat or adding its `src` directory to PYTHONPATH. It provides `grail`

@@ -30,7 +30,8 @@ The project builds with meson-python. Older Pythons build a pure-Python wheel;
 `-Csetup-args=-Dnative=disabled` disables the extension explicitly. See the
 checkout README for debug builds, sanitizer runs and leak tests.
 
-The native interpreter belongs to the sibling cpython-grail checkout.
+The native interpreter belongs to the sibling cpython-grail checkout, a
+clone of the `grail` branch of [github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail).
 Follow that checkout's build notes for its free-threaded configuration.
 Do not install grail-compat into it. Its unittest runner can run the shared
 contract tests without pytest:

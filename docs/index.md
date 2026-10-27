@@ -20,7 +20,7 @@ sources:
 Grail is an experimental Python API for closed immutable records, extensible
 generic functions, persistent collections, and synchronized reference cells.
 Try it on stock CPython 3.10+ with grail-compat or on the native CPython
-prototype. The API and design are still changing; this is not released Python
+prototype (the `grail` branch of [github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail)). The API and design are still changing; this is not released Python
 language functionality.
 
     >>> from grail import record, replace, generic, PMap, Atom

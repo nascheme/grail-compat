@@ -5,7 +5,8 @@
 > and is likely to contain bugs.
 
 Implementation of the Project Grail API (`import grail`) for existing
-CPython versions (3.10+).  It follows the native prototype's semantics; see
+CPython versions (3.10+).  It follows the semantics of the native prototype
+(the `grail` branch of https://github.com/nascheme/cpython); see
 the docstring in `src/grail/__init__.py` for the known deviations.
 
 On CPython 3.14+ the persistent `PMap` and `PSet` are the prototype's C

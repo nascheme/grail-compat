@@ -1,5 +1,5 @@
-"""Richards (Martin Richards' OS-kernel simulation), Grail style: kernel
-state is a value.
+"""Richards (Martin Richards' task-scheduling simulation), Grail style:
+scheduler state is an immutable snapshot with a persistent task table.
 
 What it computes
 ----------------
@@ -30,23 +30,23 @@ Design
   action)``, dispatched by the generic function ``step`` on the exact type of
   the task data.  That generic call is the Grail counterpart of the
   benchmark's virtual ``Task.fn`` call.
-* What a task asks the kernel to do is a closed set of alternatives, so it is
+* What a task asks the scheduler to do is a closed set of alternatives, so it is
   a union of records (``Action = Wait | Hold | Release | Send``) interpreted
   with ``match``.
-* The kernel state is a value too: a ``Kernel`` record of the task table
-  (a tuple of ``Task`` records by id: data, input queue, waiting and
-  holding flags), the current task and the two counters.  ``kernel_step``
-  is a pure transition from one kernel state to the next (moving past
-  tasks that cannot run, then running one), so ``schedule`` is a fold of
-  it and every intermediate state remains a usable snapshot.  A step
-  rebuilds the one or two ``Task`` records it changes, the seven-slot
-  table and the ``Kernel`` record; the original's separate "packet
-  pending" flag is the queue being non-empty.  The previous design (the
-  same steps over local mutable lists) is kept as hybrid.py.
+* ``SchedulerState`` holds a persistent ``PVector`` task table (``Task``
+  records by id: data, input queue, waiting and holding flags), the current
+  task and the two counters.  ``scheduler_step`` is a pure transition
+  between snapshots, moving past tasks that cannot run, then running one.
+  Updates use ``PVector.set`` and ``grail.replace``; old snapshots remain
+  usable.  The original's separate "packet pending" flag is the queue
+  being non-empty.  Task-table updates need no slicing or concatenation
+  (an earlier version kept the table as a tuple).  PVector fields
+  are currently ordinary fields, so SchedulerState is not classified as
+  a value record despite its immutable contents.
 * Packet queues are tuples (never more than four packets), replacing the
   original's intrusive linked lists.  A packet that "changes" (a handler
-  bumping a work packet's index, the kernel stamping the sender id) is
-  rebuilt with ``copy.replace``.
+  bumping a work packet's index, the scheduler stamping the sender id) is
+  rebuilt with ``grail.replace``.
 
 Parallelism
 -----------
@@ -58,9 +58,8 @@ benchmark's latency, so the default workload (one iteration) runs on one
 thread.
 """
 
-import copy
-
 import grail
+from grail import PVector, replace
 
 # Task ids.  Tasks are created in this order, and the scheduler's task list
 # is in reverse creation order, so the list is DEVB, DEVA, ..., IDLE.
@@ -114,7 +113,7 @@ class DeviceData:
     pending: Packet | None
 
 
-# What a step asks the kernel to do: a closed union of records.
+# What a step asks the scheduler to do: a closed union of records.
 @grail.record
 class Wait:                      # nothing to do until a packet arrives
     pass
@@ -197,9 +196,9 @@ def _(data: HandlerData, packet):
     if not device_in:
         return HandlerData(work_in, device_in), WAIT
     dev = device_in[0]
-    work_in = (copy.replace(work, datum=i + 1),) + work_in[1:]
+    work_in = (replace(work, datum=i + 1),) + work_in[1:]
     return (HandlerData(work_in, device_in[1:]),
-            Send(copy.replace(dev, datum=work.data[i])))
+            Send(replace(dev, datum=work.data[i])))
 
 
 @step.impl
@@ -212,7 +211,7 @@ def _(data: DeviceData, packet):
     return DeviceData(packet), HOLD
 
 
-# ---------------------------------------------------------------- kernel
+# ------------------------------------------------------------- scheduler
 
 @grail.record
 class Task:
@@ -223,43 +222,39 @@ class Task:
 
 
 @grail.record
-class Kernel:
-    tasks: tuple[Task | None, ...]   # by task id; slot 0 unused
+class SchedulerState:
+    tasks: PVector[Task | None]   # by task id; slot 0 unused
     current: int                     # task to consider next; 0 = finished
     hold_count: int
     qpkt_count: int
 
 
-def initial_kernel() -> Kernel:
+def initial_state() -> SchedulerState:
     """The tasks and packets as the original's Richards.run sets them up."""
     work = Packet(0, K_WORK, 0, EMPTY_DATA)
     dev_a = Packet(I_DEVA, K_DEV, 0, EMPTY_DATA)
     dev_b = Packet(I_DEVB, K_DEV, 0, EMPTY_DATA)
-    tasks = (None,
+    tasks = PVector((None,
              Task(IdleData(1, 10000), (), False, False),   # idle starts running
              Task(WorkerData(I_HANDLERA, 0), (work,) * 2, True, False),
              Task(HandlerData((), ()), (dev_a,) * 3, True, False),
              Task(HandlerData((), ()), (dev_b,) * 3, True, False),
              Task(DeviceData(None), (), True, False),
-             Task(DeviceData(None), (), True, False))
-    return Kernel(tasks, I_DEVB, 0, 0)       # DEVB heads the task list
+             Task(DeviceData(None), (), True, False)))
+    return SchedulerState(tasks, I_DEVB, 0, 0)  # DEVB heads the task list
 
 
-def _put(tasks: tuple, i: int, task: Task) -> tuple:
-    return tasks[:i] + (task,) + tasks[i + 1:]
-
-
-def kernel_step(k: Kernel, trace=None) -> Kernel:
-    """The kernel after its next task activation (or finished)."""
-    tasks = k.tasks
-    t = k.current
+def scheduler_step(state: SchedulerState, trace=None) -> SchedulerState:
+    """The scheduler after its next task activation (or finished)."""
+    tasks = state.tasks
+    t = state.current
     while True:                              # skip tasks that cannot run
         task = tasks[t]
         if not (task.holding or (task.waiting and not task.queue)):
             break
         t = NEXT[t]
         if not t:
-            return Kernel(tasks, 0, k.hold_count, k.qpkt_count)
+            return replace(state, current=0)
     if trace is not None:
         trace(chr(ord("0") + t))
     packet = None
@@ -272,38 +267,42 @@ def kernel_step(k: Kernel, trace=None) -> Kernel:
             trace(packet.datum)
     data, action = step(task.data, packet)
 
-    hold_count, qpkt_count = k.hold_count, k.qpkt_count
+    hold_count, qpkt_count = state.hold_count, state.qpkt_count
     match action:
         case Wait():
-            tasks = _put(tasks, t, Task(data, queue, True, task.holding))
+            tasks = tasks.set(t, replace(task, data=data, queue=queue,
+                                         waiting=True))
         case Hold():
             hold_count += 1
-            tasks = _put(tasks, t, Task(data, queue, waiting, True))
+            tasks = tasks.set(t, replace(task, data=data, queue=queue,
+                                         waiting=waiting, holding=True))
             t = NEXT[t]
         case Release(target):
-            tasks = _put(tasks, t, Task(data, queue, waiting, task.holding))
-            tasks = _put(tasks, target, copy.replace(tasks[target], holding=False))
+            tasks = tasks.set(t, replace(task, data=data, queue=queue,
+                                         waiting=waiting))
+            tasks = tasks.set(target, replace(tasks[target], holding=False))
             if PRIORITY[target] > PRIORITY[t]:
                 t = target
         case Send(p):
             dest = p.ident
             qpkt_count += 1
-            p = copy.replace(p, ident=t)     # the receiver sees the sender's id
-            tasks = _put(tasks, t, Task(data, queue, waiting, task.holding))
+            p = replace(p, ident=t)          # the receiver sees the sender's id
+            tasks = tasks.set(t, replace(task, data=data, queue=queue,
+                                         waiting=waiting))
             d = tasks[dest]
-            tasks = _put(tasks, dest, Task(d.data, d.queue + (p,), d.waiting,
-                                           d.holding))
+            tasks = tasks.set(dest, replace(d, queue=d.queue + (p,)))
             if not d.queue and PRIORITY[dest] > PRIORITY[t]:
                 t = dest
-    return Kernel(tasks, t, hold_count, qpkt_count)
+    return replace(state, tasks=tasks, current=t,
+                   hold_count=hold_count, qpkt_count=qpkt_count)
 
 
 def schedule(trace=None):
-    """Run the kernel to completion; return the hold and queue counters."""
-    k = initial_kernel()
-    while k.current:
-        k = kernel_step(k, trace)
-    return Result(k.hold_count, k.qpkt_count)
+    """Run the scheduler to completion; return the hold and queue counters."""
+    state = initial_state()
+    while state.current:
+        state = scheduler_step(state, trace)
+    return Result(state.hold_count, state.qpkt_count)
 
 
 def check(r: Result) -> bool:

@@ -197,9 +197,10 @@ for shape/surface polymorphism and `grail.ops` vector arithmetic; rows are
 rendered in parallel.
 
 **richards** - pyperformance `bm_richards`: Martin Richards' OS-kernel
-simulation.  The kernel is a value (a record of a seven-slot `Task` record
-table, the current task and counters) advanced by the pure `kernel_step`.
-`hybrid.py` keeps the earlier kernel over local mutable lists.
+simulation.  The scheduler state is an immutable snapshot (a record of a
+persistent `PVector` table of `Task` records, the current task and counters)
+advanced by the pure `scheduler_step` with `PVector.set` and `grail.replace`.
+`hybrid.py` keeps the earlier scheduler over local mutable lists.
 
 **sqlglot_port** - Partial SQLGlot 4.6.0 conversion: immutable expression trees,
 record-native simplification, Boolean normalization, compact SQL generation,

@@ -7,10 +7,10 @@ sources:
   - grail-compat/benchmarks/richards/hybrid.py
 ---
 
-# Richards: a pure transition kernel
+# Richards: a pure transition scheduler
 
 Richards models a priority scheduler. The port separates a task's pure step
-from the kernel that interprets its requested action. Small action records
+from the scheduler that interprets its requested action. Small action records
 make control flow explicit.
 
     >>> from grail import record
@@ -32,19 +32,18 @@ make control flow explicit.
 | --- | --- |
 | Task subclasses with virtual `fn` | Generic `step(data, packet)` |
 | Mutable linked packets | Packet records and short tuple queues |
-| Updates to global task work area | `kernel_step(kernel)` returns a new Kernel |
+| Updates to global task work area | `scheduler_step(state)` returns a new SchedulerState |
 | Scheduler methods perform effects directly | `Wait`, `Hold`, `Release`, `Send` records interpreted with match |
 
 Read `benchmarks/richards/idiomatic.py`: the four `step` implementations return
-`(new_data, action)`. `kernel_step` replaces affected Task records and rebuilds
-the small seven-slot table. Old Kernel snapshots remain usable.
-The source uses `copy.replace` to change packet fields without mutating
-earlier packets. In new Grail code, use `grail.replace` for the same record
-update; it also works on Python versions before 3.13.
+`(new_data, action)`. `scheduler_step` replaces affected Task records with
+`grail.replace` and stores them with `PVector.set`, so the task table is a
+persistent vector and old snapshots remain usable. Packets are changed the
+same way, without mutating earlier packets.
 
 `benchmarks/richards/hybrid.py` keeps the earlier scheduler with private mutable
 lists. It uses the same task operations but does not publish an intermediate
-kernel value on every transition. The original class hierarchy is in
+scheduler state on every transition. The original class hierarchy is in
 `benchmarks/richards/upstream.py`.
 
 ## What not to parallelize
@@ -53,7 +52,7 @@ Each scheduler step depends on the previous step. Running independent complete
 iterations concurrently measures throughput, not latency of one simulation.
 Records do not remove that dependency.
 
-The parent `bench/notes/richards.md` describes the earlier list-based kernel.
+The parent `bench/notes/richards.md` describes the earlier list-based scheduler.
 Use the current source and benchmark README for the snapshot design; do not
 copy the old note's representation claims into new code.
 

@@ -13,6 +13,13 @@ Batch size adapts to the measured task time.  A pool worker waiting for a
 map of its own pool runs pool work meanwhile, so nested maps cannot
 deadlock.  Workers are daemon threads.
 
+Scopes (Pool.scope(), Scope.spawn()) run individual tasks with work
+stealing: a task spawned on a worker goes onto that worker's deque, one
+spawned from any other thread onto a shared injector deque.  A worker runs
+its own newest task first, then the injector's oldest, then steals another
+worker's oldest.  collections.deque's append, pop and popleft are atomic,
+so the deques need no locks.
+
 Unlike the native pool, results are published under a lock, once per batch,
 so the per-task overhead is that of Python-level lock operations, not of C
 atomics.
@@ -21,8 +28,14 @@ atomics.
 import collections
 import contextvars
 import os
+import sys as _sys
 import threading
 import time
+
+try:
+    _BaseExceptionGroup = BaseExceptionGroup        # 3.11+
+except NameError:
+    _BaseExceptionGroup = None
 
 __all__ = ["Pool"]
 
@@ -51,9 +64,53 @@ class _Core:
         self.pid = os.getpid()
         self.threads = []
         self.idle = 0             # workers waiting on cond
+        self.deques = [collections.deque() for _ in range(n_threads)]
+        self.injector = collections.deque()
+
+    def tasks_visible(self):
+        return bool(self.injector) or any(self.deques)
+
+    def find_task(self, index):
+        """Return a task for worker index: its own newest, the injector's
+        oldest, or the oldest of another worker; or None."""
+        # Test before popping: raising IndexError costs more than the test.
+        own = self.deques[index]
+        if own:
+            try:
+                return own.pop()
+            except IndexError:
+                pass
+        if self.injector:
+            try:
+                return self.injector.popleft()
+            except IndexError:
+                pass
+        deques = self.deques
+        n = self.n_threads
+        for k in range(1, n):
+            victim = deques[(index + k) % n]
+            if victim:
+                try:
+                    return victim.popleft()
+                except IndexError:
+                    pass
+        return None
+
+    def push_task(self, task):
+        index = getattr(_worker, "index", None)
+        if index is not None and _worker.core is self:
+            self.deques[index].append(task)
+        else:
+            self.injector.append(task)
+        # An idle worker increments idle before rechecking for tasks, under
+        # cond, so reading idle after the push cannot miss it.
+        if self.idle:
+            self.notify(all=False)
 
     def find_job(self, block):
-        """Return a map with work available, waiting for one if block."""
+        """Return a map with work available.  If block, wait for work;
+        return None when tasks are visible, or at shutdown once no map has
+        work left."""
         with self.cond:
             while True:
                 for _ in range(len(self.jobs)):
@@ -71,9 +128,13 @@ class _Core:
                     return None
                 self.idle += 1
                 try:
+                    if self.tasks_visible():
+                        return None
                     self.cond.wait()
                 finally:
                     self.idle -= 1
+                if self.tasks_visible():
+                    return None
 
     def notify(self, all):
         with self.cond:
@@ -85,7 +146,12 @@ class _Core:
                 self.cond.notify()
 
     def help(self):
-        """Run one batch of any map, from a worker waiting on a nested map."""
+        """Run one task, or one batch of any map, from a worker waiting on a
+        nested map or scope."""
+        task = self.find_task(_worker.index)
+        if task is not None:
+            _run_task(task)
+            return True
         job = self.find_job(block=False)
         return job is not None and job.run_batch([0.0], help=True)
 
@@ -219,18 +285,36 @@ class _Map:
                 self.cond.notify_all()
 
 
-def _worker_main(core):
+def _run_task(task):
+    scope, func, args, kwargs, context = task
+    try:
+        if not scope._cancelled:
+            context.run(func, *args, **kwargs)
+    except BaseException as exc:
+        scope._record(exc)
+    finally:
+        scope._task_done()
+
+
+def _worker_main(core, index):
     _worker.core = core
+    _worker.index = index
     job = None
     estimate = [0.0]
     while True:
-        if job is None or not job.available():
-            job = core.find_job(block=True)
-            estimate = [0.0]
-            if job is None:
-                break
-        if not job.run_batch(estimate):
-            job = None
+        task = core.find_task(index)
+        if task is not None:
+            _run_task(task)
+            task = None
+            continue
+        if job is not None and job.available():
+            if not job.run_batch(estimate):
+                job = None
+            continue
+        job = core.find_job(block=True)
+        estimate = [0.0]
+        if job is None and core.shutdown and not core.tasks_visible():
+            break
     _worker.ctx = _worker.ctx_job = None
 
 
@@ -315,7 +399,7 @@ class PoolMapResults:
 
     def __del__(self):
         job = getattr(self, "_job", None)
-        if job is None:
+        if job is None or _sys.is_finalizing():
             return
         # Unconsumed items still run, as with concurrent.futures, but their
         # results are dropped and buffersize no longer limits them.
@@ -345,8 +429,8 @@ class Pool:
         if n_threads < 1:
             raise ValueError("n_threads must be greater than 0")
         core = self._core = _Core(n_threads)
-        for _ in range(n_threads):
-            t = threading.Thread(target=_worker_main, args=(core,),
+        for index in range(n_threads):
+            t = threading.Thread(target=_worker_main, args=(core, index),
                                  name="grail.Pool worker", daemon=True)
             t.start()
             core.threads.append(t)
@@ -384,6 +468,15 @@ class Pool:
             core.cond.notify()
         return PoolMapResults(self, job)
 
+    def scope(self):
+        """Return a Scope for spawning tasks; use it as a context manager."""
+        core = self._core
+        if os.getpid() != core.pid:
+            raise RuntimeError("the pool cannot be used after fork()")
+        if core.shutdown:
+            raise RuntimeError("cannot open a scope after the pool was shut down")
+        return Scope(self)
+
     def shutdown(self, wait=True):
         """Stop the workers.  Maps with inputs left raise RuntimeError, except
         maps whose result iterator was dropped, which run to completion."""
@@ -414,7 +507,9 @@ class Pool:
 
     def __del__(self):
         core = getattr(self, "_core", None)
-        if core is not None:
+        # During finalization a daemon worker may be frozen holding a lock
+        # that shutdown() needs.
+        if core is not None and not _sys.is_finalizing():
             self.shutdown(wait=False)
 
     def __reduce__(self):
@@ -422,3 +517,118 @@ class Pool:
 
 
 Pool.__module__ = "grail"
+
+
+class Scope:
+    """A scope for spawning tasks into a Pool; made by Pool.scope().
+
+    Leaving the with block waits until every spawned task, including tasks
+    spawned by tasks, has finished.  If tasks raised, the first error cancels
+    the tasks not yet started and leaving raises a BaseExceptionGroup of all
+    of them (preceded by the with block's own exception, if any).  Before
+    3.11, which has no exception groups, the first error is raised.
+    """
+
+    __slots__ = ("_pool", "_core", "_cond", "_pending", "_cancelled",
+                 "_closed", "_errors")
+
+    def __init__(self, pool):
+        if not isinstance(pool, Pool):
+            raise TypeError("cannot create 'grail.Scope' instances")
+        self._pool = pool         # keeps the workers running
+        self._core = pool._core
+        self._cond = threading.Condition(threading.Lock())
+        self._pending = 0         # _cond
+        self._cancelled = False
+        self._closed = False
+        self._errors = []         # _cond
+
+    def spawn(self, func, /, *args, **kwargs):
+        """Run func(*args, **kwargs) on the pool, in a copy of the current
+        contextvars context.  Returns None; tasks report results through
+        shared state such as atoms.  Ignored once a task of the scope has
+        failed."""
+        if self._closed:
+            raise RuntimeError("the scope is closed")
+        if self._core.shutdown:
+            raise RuntimeError("cannot spawn after the pool was shut down")
+        if self._cancelled:
+            return None
+        with self._cond:
+            self._pending += 1
+        self._core.push_task((self, func, args, kwargs, contextvars.copy_context()))
+        return None
+
+    def _record(self, exc):
+        self._cancelled = True
+        with self._cond:
+            self._errors.append(exc)
+
+    def _task_done(self):
+        with self._cond:
+            self._pending -= 1
+            if not self._pending:
+                self._cond.notify_all()
+
+    def _wait(self):
+        """Wait for every task.  Returns an exception (KeyboardInterrupt)
+        raised while waiting, after cancelling and still waiting for the
+        running tasks."""
+        core = self._core
+        helper = getattr(_worker, "core", None) is core
+        interrupt = None
+        while True:
+            try:
+                while self._pending:
+                    if helper:
+                        if core.help():
+                            continue
+                        timeout = _HELP_POLL
+                    elif (os.getpid() != core.pid
+                          or not any(t.is_alive() for t in core.threads)):
+                        # No workers to run the tasks: run them here.
+                        try:
+                            task = core.injector.popleft()
+                        except IndexError:
+                            pass
+                        else:
+                            _run_task(task)
+                            continue
+                        timeout = _HELP_POLL
+                    else:
+                        timeout = None
+                    with self._cond:
+                        if self._pending:
+                            self._cond.wait(timeout)
+                return interrupt
+            except BaseException as exc:
+                if interrupt is None:
+                    interrupt = exc
+                self._cancelled = True
+
+    def __enter__(self):
+        if self._closed:
+            raise RuntimeError("the scope is closed")
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if exc is not None:
+            self._cancelled = True
+        interrupt = self._wait()
+        self._closed = True
+        errors, self._errors = self._errors, []
+        if not errors:
+            if interrupt is not None:
+                raise interrupt
+            return False
+        body = interrupt if interrupt is not None else exc
+        excs = ([body] if body is not None else []) + errors
+        if _BaseExceptionGroup is None:
+            raise excs[0]
+        raise _BaseExceptionGroup("unhandled errors in a Scope", excs)
+
+    def __reduce__(self):
+        raise TypeError("cannot pickle 'grail.Scope' object")
+
+
+Scope.__module__ = "grail"

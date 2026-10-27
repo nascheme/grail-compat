@@ -33,8 +33,8 @@ class NativeTests(unittest.TestCase):
         # buildgraph's hybrid.py eagerly warms a machine-sized thread pool
         # at import; leave its execution to the challenge harness.
         for path in sorted(BENCHMARKS.glob("*/*.py")):
-            if path.stem == "idiomatic" or (path.stem == "hybrid"
-                                            and path.parent.name != "buildgraph"):
+            if path.stem in ("idiomatic", "replace") or (
+                    path.stem == "hybrid" and path.parent.name != "buildgraph"):
                 with self.subTest(path=path.relative_to(BENCHMARKS)):
                     load_benchmark(path.parent.name, path.name)
         if sysconfig.get_config_var("Py_GIL_DISABLED"):
@@ -64,19 +64,19 @@ class NativeTests(unittest.TestCase):
                     self.assertIn("grail.record", names,
                                   f"{path.relative_to(BENCHMARKS)}: {node.name}")
 
-    def test_richards_mutate_matches(self):
-        # richards/mutate.py edits the same snapshots through grail.mutate.
-        variant = load_benchmark("richards", "mutate.py")
+    def test_richards_replace_matches(self):
+        # richards/replace.py builds the same snapshots with grail.replace.
+        variant = load_benchmark("richards", "replace.py")
         expected, actual = [], []
         richards.schedule(expected.append)
         result = variant.schedule(actual.append)
         self.assertEqual(actual, expected)
         self.assertTrue(variant.check(result))
 
-    def test_deltablue_mutate_matches(self):
-        # deltablue/mutate.py edits the same snapshots through grail.mutate.
+    def test_deltablue_replace_matches(self):
+        # deltablue/replace.py builds the same snapshots with transients.
         idiomatic = load_benchmark("deltablue")
-        variant = load_benchmark("deltablue", "mutate.py")
+        variant = load_benchmark("deltablue", "replace.py")
         self.assertEqual([repr(s) for s in variant.delta_blue(100)],
                          [repr(s) for s in idiomatic.delta_blue(100)])
 

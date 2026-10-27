@@ -4,7 +4,7 @@ sources:
   - benchmarks/richards/idiomatic.py
   - benchmarks/richards/upstream.py
   - benchmarks/richards/hybrid.py
-  - benchmarks/richards/mutate.py
+  - benchmarks/richards/replace.py
 ---
 
 # Richards: a pure transition scheduler
@@ -36,32 +36,33 @@ make control flow explicit.
 | Scheduler methods perform effects directly | `Wait`, `Hold`, `Release`, `Send` records interpreted with match |
 
 Read `benchmarks/richards/idiomatic.py`: the four `step` implementations return
-`(new_data, action)`. `scheduler_step` replaces affected Task records with
-`grail.replace` and stores them with `PVector.set`, so the task table is a
-persistent vector and old snapshots remain usable. Packets are changed the
-same way, without mutating earlier packets.
+`(new_data, action)`. `scheduler_step` edits a [draft](../reference/mutate.md)
+of the state, assigning to the next snapshot as the mutable original assigns
+to its objects:
 
-`benchmarks/richards/hybrid.py` keeps the earlier scheduler with private mutable
-lists. It uses the same task operations but does not publish an intermediate
-scheduler state on every transition. The original class hierarchy is in
-`benchmarks/richards/upstream.py`.
-
-`benchmarks/richards/mutate.py` writes the same transition with an
-experimental [draft](../reference/mutate.md). `scheduler_step` assigns to
-the next snapshot as the mutable original assigns to its objects:
-
-    with grail.mutate(state) as s:
+    with mutate(state) as s:
         ...
         case Send(p):
             s.qpkt_count += 1
             dest = s.tasks[p.ident]
             dest.queue += (replace(p, ident=t),)
         ...
-    return grail.finish(s)
+    return finish(s)
 
-It produces the same trace and counters. On the native backend it runs
-about 1.2x slower than the `replace` version: finishing builds the same
-records, and every edit also goes through a draft.
+`finish` builds the changed Task records and the task table, a persistent
+vector, so old snapshots remain usable. A packet placed in a queue is a new
+value built with `replace`, not an edit of the old one.
+
+`benchmarks/richards/hybrid.py` keeps the earlier scheduler with private mutable
+lists. It uses the same task operations but does not publish an intermediate
+scheduler state on every transition. The original class hierarchy is in
+`benchmarks/richards/upstream.py`.
+
+`benchmarks/richards/replace.py` builds each snapshot with explicit
+`grail.replace` and `PVector.set` calls instead. It produces the same trace
+and counters. On the native backend the draft version runs about 1.2x
+slower: finishing builds the same records, and every edit also goes through
+a draft.
 
 ## What not to parallelize
 

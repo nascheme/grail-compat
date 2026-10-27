@@ -34,7 +34,7 @@ nav = [
 {"Worked program designs" = "examples/index.md"},
 {"Ray tracer: data and open operations" = "examples/raytrace.md"},
 {"Richards: a pure transition kernel" = "examples/richards.md"},
-{"DeltaBlue: graph IDs and batches" = "examples/deltablue.md"},
+{"DeltaBlue: graph IDs and drafts" = "examples/deltablue.md"},
 {"Aggregate: fold privately, merge values" = "examples/aggregate.md"},
 {"Michi: immutable trees and explicit randomness" = "examples/michi.md"}
 ]},

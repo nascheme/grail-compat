@@ -1,5 +1,5 @@
 """DeltaBlue (incremental one-way constraint solver), Grail style: solver
-state is a value.
+state is a value, edited through ``grail.mutate`` drafts.
 
 What it computes
 ----------------
@@ -51,18 +51,17 @@ Design
   (adding or removing a constraint, extracting a plan, running a plan with
   a new input) takes a snapshot and returns a new one; older snapshots stay
   valid and shareable.
-* Within one operation, propagation edits a ``Batch``: thread-confined
-  ``PVector`` transients over the snapshot's vectors, published by
-  ``finish()`` when the operation ends.  A variable update replaces its
-  ``Var`` record (``copy.replace``); the transient edits the trie path in
-  place once it owns it, so an operation copies only the leaves it
-  touches.  The graph's cycles (variables list constraints, constraints
+* Within one operation, propagation edits a ``grail.mutate`` draft of the
+  Solver, finished when the operation ends.  Field assignments to a
+  variable accumulate in its draft, so each changed ``Var`` is rebuilt
+  once per operation.  The graph's cycles (variables list constraints, constraints
   name variables) are ids, not references.
 * A plan is a tuple of constraints (an immutable value).
 * Work queues are ``collections.deque`` (same FIFO order as pop(0)).
 
-The previous design (one record of mutable lists, same algorithm) is kept
-as hybrid.py for comparison.
+An earlier design (one record of mutable lists, same algorithm) is kept
+as hybrid.py, and the version with transients and ``copy.replace`` as
+replace.py.
 
 Parallelism
 -----------
@@ -80,6 +79,7 @@ import itertools
 from collections import deque
 
 import grail
+from grail import finish, mutate
 
 # Strengths: smaller is stronger.
 REQUIRED, STRONG_PREFERRED, PREFERRED, STRONG_DEFAULT, NORMAL, WEAK_DEFAULT, \
@@ -147,16 +147,6 @@ class Solver:
     marks: int                               # last mark issued
 
 
-@grail.record
-class Batch:
-    """The working state of one operation on a Solver, confined to its thread:
-    transients over the snapshot's vectors and the source of fresh marks."""
-    vars: object                 # PVector transient: var -> Var
-    direction: object            # PVector transient (or the PVector, read-only)
-    by_cid: grail.PVector[Constraint]
-    marks: object                # itertools.count of fresh marks, or None
-
-
 def new_solver() -> Solver:
     return Solver(grail.PVector(), grail.PVector(), grail.PVector(), 0)
 
@@ -166,16 +156,18 @@ def new_variable(s: Solver, value=0) -> tuple[Solver, int]:
     return copy.replace(s, vars=s.vars.append(var)), len(s.vars)
 
 
-def open_batch(s: Solver, vars=None, direction=None, by_cid=None) -> Batch:
-    return Batch((s.vars if vars is None else vars).mutate(),
-                 (s.direction if direction is None else direction).mutate(),
-                 s.constraints if by_cid is None else by_cid,
-                 itertools.count(s.marks + 1))
+def open_draft(s: Solver):
+    """A draft of s for one operation.  The constraint table is assigned
+    back unchanged, so reads return the PVector itself rather than drafts
+    of the (immutable) constraints."""
+    b = mutate(s)
+    b.constraints = s.constraints
+    return b
 
 
-def close_batch(b: Batch) -> Solver:
-    return Solver(b.vars.finish(), b.direction.finish(), b.by_cid,
-                  next(b.marks) - 1)
+def fresh_mark(b) -> int:
+    b.marks += 1
+    return b.marks
 
 
 # ------------------------------------------- per-kind constraint behaviour
@@ -191,7 +183,7 @@ def variables(c: Constraint) -> tuple:
             return (c.out,)
 
 
-def output(b: Batch, c: Constraint) -> int:
+def output(b, c: Constraint) -> int:
     match c:
         case Equal() | Scale():
             return c.v2 if b.direction[c.cid] == FORWARD else c.v1
@@ -199,11 +191,11 @@ def output(b: Batch, c: Constraint) -> int:
             return c.out
 
 
-def input_of(b: Batch, c: Equal | Scale) -> int:
+def input_of(b, c: Equal | Scale) -> int:
     return c.v1 if b.direction[c.cid] == FORWARD else c.v2
 
 
-def choose_method(b: Batch, c: Constraint, mark: int) -> None:
+def choose_method(b, c: Constraint, mark: int) -> None:
     """Pick the direction that lets c be enforced, or NONE."""
     vs = b.vars
     match c:
@@ -223,21 +215,18 @@ def choose_method(b: Batch, c: Constraint, mark: int) -> None:
     b.direction[c.cid] = d
 
 
-def set_mark(vs, v: int, mark: int) -> None:
-    vs[v] = copy.replace(vs[v], mark=mark)
-
-
-def mark_inputs(b: Batch, c: Constraint, mark: int) -> None:
+def mark_inputs(b, c: Constraint, mark: int) -> None:
+    vs = b.vars
     match c:
         case Equal():
-            set_mark(b.vars, input_of(b, c), mark)
+            vs[input_of(b, c)].mark = mark
         case Scale():
-            set_mark(b.vars, input_of(b, c), mark)
-            set_mark(b.vars, c.scale, mark)
-            set_mark(b.vars, c.offset, mark)
+            vs[input_of(b, c)].mark = mark
+            vs[c.scale].mark = mark
+            vs[c.offset].mark = mark
 
 
-def inputs_known(b: Batch, c: Constraint, mark: int) -> bool:
+def inputs_known(b, c: Constraint, mark: int) -> bool:
     match c:
         case Equal() | Scale():
             x = b.vars[input_of(b, c)]
@@ -246,45 +235,43 @@ def inputs_known(b: Batch, c: Constraint, mark: int) -> bool:
             return True
 
 
-def execute(b: Batch, c: Constraint) -> None:
+def execute(b, c: Constraint) -> None:
     """Enforce c by computing its output from its inputs."""
     vs = b.vars
     match c:
         case Equal(cid, v1, v2):
             if b.direction[cid] == FORWARD:
-                vs[v2] = copy.replace(vs[v2], value=vs[v1].value)
+                vs[v2].value = vs[v1].value
             else:
-                vs[v1] = copy.replace(vs[v1], value=vs[v2].value)
+                vs[v1].value = vs[v2].value
         case Scale(cid, v1, v2, scale, offset):
             if b.direction[cid] == FORWARD:
-                x = vs[v1].value * vs[scale].value + vs[offset].value
-                vs[v2] = copy.replace(vs[v2], value=x)
+                vs[v2].value = vs[v1].value * vs[scale].value + vs[offset].value
             else:
-                x = (vs[v2].value - vs[offset].value) / vs[scale].value
-                vs[v1] = copy.replace(vs[v1], value=x)
+                vs[v1].value = (vs[v2].value - vs[offset].value) / vs[scale].value
         # Stay and Edit compute nothing.
 
 
-def recalculate(b: Batch, c: Constraint) -> None:
+def recalculate(b, c: Constraint) -> None:
     """Recompute walk strength and stay of c's output, and its value if stay."""
     vs = b.vars
     match c:
         case Equal() | Scale():
-            i, out = input_of(b, c), output(b, c)
-            xi = vs[i]
+            xi, x = vs[input_of(b, c)], vs[output(b, c)]
             stay = xi.stay
             if type(c) is Scale:
                 stay = stay and vs[c.scale].stay and vs[c.offset].stay
-            vs[out] = copy.replace(vs[out], walk=max(c.strength, xi.walk),
-                                   stay=stay)            # the weaker of the two
+            x.walk = max(c.strength, xi.walk)        # the weaker of the two
+            x.stay = stay
             if stay:
                 execute(b, c)
         case _:
-            vs[c.out] = copy.replace(vs[c.out], walk=c.strength,
-                                     stay=type(c) is not Edit)   # edits are inputs
+            x = vs[c.out]
+            x.walk = c.strength
+            x.stay = type(c) is not Edit             # edits are inputs
 
 
-def is_satisfied(b: Batch, c: Constraint) -> bool:
+def is_satisfied(b, c: Constraint) -> bool:
     return b.direction[c.cid] != NONE
 
 
@@ -293,43 +280,42 @@ def is_satisfied(b: Batch, c: Constraint) -> bool:
 def add_constraint(s: Solver, c: Constraint) -> Solver:
     """s with c registered in the graph and incrementally re-satisfied."""
     assert c.cid == len(s.constraints)
-    vs = s.vars.mutate()
-    for v in variables(c):
-        x = vs[v]
-        vs[v] = copy.replace(x, constraints=x.constraints + (c,))
-    b = open_batch(s, vs.finish(), s.direction.append(NONE),
-                   s.constraints.append(c))
-    incremental_add(b, c)
-    return close_batch(b)
+    with mutate(s) as b:
+        b.constraints = s.constraints.append(c)
+        b.direction.append(NONE)
+        for v in variables(c):
+            b.vars[v].constraints += (c,)
+        incremental_add(b, c)
+    return finish(b)
 
 
 def next_cid(s: Solver) -> int:
     return len(s.constraints)
 
 
-def remove_from_graph(b: Batch, c: Constraint) -> None:
+def remove_from_graph(b, c: Constraint) -> None:
     vs = b.vars
     for v in variables(c):
         x = vs[v]
         cs = x.constraints
         i = cs.index(c)
-        det = NO_CONSTRAINT if x.determined_by == c.cid else x.determined_by
-        vs[v] = copy.replace(x, constraints=cs[:i] + cs[i + 1:],
-                             determined_by=det)
+        x.constraints = cs[:i] + cs[i + 1:]
+        if x.determined_by == c.cid:
+            x.determined_by = NO_CONSTRAINT
     b.direction[c.cid] = NONE
 
 
 def destroy_constraint(s: Solver, c: Constraint) -> Solver:
     """s without c."""
-    b = open_batch(s)
-    if is_satisfied(b, c):
-        incremental_remove(b, c)
-    else:
-        remove_from_graph(b, c)
-    return close_batch(b)
+    with open_draft(s) as b:
+        if is_satisfied(b, c):
+            incremental_remove(b, c)
+        else:
+            remove_from_graph(b, c)
+    return finish(b)
 
 
-def satisfy(b: Batch, c: Constraint, mark: int):
+def satisfy(b, c: Constraint, mark: int):
     """Try to enforce c; return the constraint it overrode, or None."""
     choose_method(b, c, mark)
     if not is_satisfied(b, c):
@@ -338,26 +324,25 @@ def satisfy(b: Batch, c: Constraint, mark: int):
         return None
     mark_inputs(b, c, mark)
     out = output(b, c)
-    vs = b.vars
-    x = vs[out]
+    x = b.vars[out]
     overridden = x.determined_by
     if overridden != NO_CONSTRAINT:
         b.direction[overridden] = NONE               # mark it unsatisfied
-    vs[out] = copy.replace(x, determined_by=c.cid)
+    x.determined_by = c.cid
     if not add_propagate(b, c, mark):
         print("Cycle encountered")
-    set_mark(vs, out, mark)
-    return None if overridden == NO_CONSTRAINT else b.by_cid[overridden]
+    x.mark = mark
+    return None if overridden == NO_CONSTRAINT else b.constraints[overridden]
 
 
-def incremental_add(b: Batch, c: Constraint) -> None:
-    mark = next(b.marks)
+def incremental_add(b, c: Constraint) -> None:
+    mark = fresh_mark(b)
     overridden = satisfy(b, c, mark)
     while overridden is not None:
         overridden = satisfy(b, overridden, mark)
 
 
-def incremental_remove(b: Batch, c: Constraint) -> None:
+def incremental_remove(b, c: Constraint) -> None:
     out = output(b, c)
     b.direction[c.cid] = NONE
     remove_from_graph(b, c)
@@ -373,7 +358,7 @@ def incremental_remove(b: Batch, c: Constraint) -> None:
             incremental_add(b, u)
 
 
-def add_consumers(b: Batch, v: int, todo) -> None:
+def add_consumers(b, v: int, todo) -> None:
     """Append the enforced constraints that read v (other than its source)."""
     x = b.vars[v]
     det = x.determined_by
@@ -383,7 +368,7 @@ def add_consumers(b: Batch, v: int, todo) -> None:
             todo.append(c)
 
 
-def add_propagate(b: Batch, c: Constraint, mark: int) -> bool:
+def add_propagate(b, c: Constraint, mark: int) -> bool:
     """Recalculate everything downstream of c; False if that hits a cycle."""
     todo = deque([c])
     while todo:
@@ -397,11 +382,13 @@ def add_propagate(b: Batch, c: Constraint, mark: int) -> bool:
     return True
 
 
-def remove_propagate_from(b: Batch, out: int) -> list:
+def remove_propagate_from(b, out: int) -> list:
     """Reset everything downstream of out; return constraints left unsatisfied."""
     vs = b.vars
-    vs[out] = copy.replace(vs[out], determined_by=NO_CONSTRAINT, walk=WEAKEST,
-                           stay=True)
+    x = vs[out]
+    x.determined_by = NO_CONSTRAINT
+    x.walk = WEAKEST
+    x.stay = True
     unsatisfied = []
     todo = deque([out])
     while todo:
@@ -416,17 +403,19 @@ def remove_propagate_from(b: Batch, out: int) -> list:
     return unsatisfied
 
 
-def make_plan(b: Batch, sources) -> tuple:
+def make_plan(b, sources) -> tuple:
     """Order the constraints downstream of sources so inputs come first."""
-    mark = next(b.marks)
+    mark = fresh_mark(b)
     plan = []
     todo = deque(sources)
+    vs = b.vars
     while todo:
         c = todo.popleft()
         out = output(b, c)
-        if b.vars[out].mark != mark and inputs_known(b, c, mark):
+        x = vs[out]
+        if x.mark != mark and inputs_known(b, c, mark):
             plan.append(c)
-            set_mark(b.vars, out, mark)
+            x.mark = mark
             add_consumers(b, out, todo)
     return tuple(plan)
 
@@ -434,20 +423,19 @@ def make_plan(b: Batch, sources) -> tuple:
 def extract_plan(s: Solver, constraints) -> tuple[Solver, tuple]:
     """The plan for the satisfied edits among constraints, and s with the
     marks it used."""
-    b = open_batch(s)
-    plan = make_plan(b, [c for c in constraints
-                         if type(c) is Edit and is_satisfied(b, c)])
-    return close_batch(b), plan
+    with open_draft(s) as b:
+        plan = make_plan(b, [c for c in constraints
+                             if type(c) is Edit and is_satisfied(b, c)])
+    return finish(b), plan
 
 
 def execute_plan(s: Solver, plan: tuple, var: int, value) -> Solver:
     """s with input `var` set to value and the plan run."""
-    vs = s.vars.mutate()
-    vs[var] = copy.replace(vs[var], value=value)
-    b = Batch(vs, s.direction, s.constraints, None)
-    for c in plan:
-        execute(b, c)
-    return Solver(vs.finish(), s.direction, s.constraints, s.marks)
+    with open_draft(s) as b:
+        b.vars[var].value = value
+        for c in plan:
+            execute(b, c)
+    return finish(b)
 
 
 # ------------------------------------------------------------------ tests

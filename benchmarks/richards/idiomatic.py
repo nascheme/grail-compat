@@ -1,5 +1,6 @@
 """Richards (Martin Richards' task-scheduling simulation), Grail style:
-scheduler state is an immutable snapshot with a persistent task table.
+scheduler state is an immutable snapshot with a persistent task table,
+updated through a ``grail.mutate`` draft.
 
 What it computes
 ----------------
@@ -37,12 +38,16 @@ Design
   records by id: data, input queue, waiting and holding flags), the current
   task and the two counters.  ``scheduler_step`` is a pure transition
   between snapshots, moving past tasks that cannot run, then running one.
-  Updates use ``PVector.set`` and ``grail.replace``; old snapshots remain
-  usable.  The original's separate "packet pending" flag is the queue
-  being non-empty.  Task-table updates need no slicing or concatenation
-  (an earlier version kept the table as a tuple).  PVector fields
-  are currently ordinary fields, so SchedulerState is not classified as
-  a value record despite its immutable contents.
+  It edits a ``grail.mutate`` draft of the state, assigning to the running
+  task's fields (``s.tasks[t].waiting = True``) as the original assigns to
+  its objects, and ``grail.finish`` builds the next snapshot; old
+  snapshots remain usable.  The original's separate "packet pending" flag
+  is the queue being non-empty.  PVector fields are currently ordinary
+  fields, so SchedulerState is not classified as a value record despite
+  its immutable contents.
+* replace.py is the same program building each snapshot with explicit
+  ``PVector.set`` and ``grail.replace`` calls; hybrid.py keeps an earlier
+  scheduler over local mutable lists.
 * Packet queues are tuples (never more than four packets), replacing the
   original's intrusive linked lists.  A packet that "changes" (a handler
   bumping a work packet's index, the scheduler stamping the sender id) is
@@ -59,7 +64,7 @@ thread.
 """
 
 import grail
-from grail import PVector, replace
+from grail import PVector, finish, mutate, replace
 
 # Task ids.  Tasks are created in this order, and the scheduler's task list
 # is in reverse creation order, so the list is DEVB, DEVA, ..., IDLE.
@@ -257,44 +262,36 @@ def scheduler_step(state: SchedulerState, trace=None) -> SchedulerState:
             return replace(state, current=0)
     if trace is not None:
         trace(chr(ord("0") + t))
-    packet = None
-    queue = task.queue
-    waiting = task.waiting
-    if waiting and queue:                    # waiting with a packet: take it
-        packet, queue = queue[0], queue[1:]
-        waiting = False
-        if trace is not None and t >= I_DEVA:
-            trace(packet.datum)
-    data, action = step(task.data, packet)
-
-    hold_count, qpkt_count = state.hold_count, state.qpkt_count
-    match action:
-        case Wait():
-            tasks = tasks.set(t, replace(task, data=data, queue=queue,
-                                         waiting=True))
-        case Hold():
-            hold_count += 1
-            tasks = tasks.set(t, replace(task, data=data, queue=queue,
-                                         waiting=waiting, holding=True))
-            t = NEXT[t]
-        case Release(target):
-            tasks = tasks.set(t, replace(task, data=data, queue=queue,
-                                         waiting=waiting))
-            tasks = tasks.set(target, replace(tasks[target], holding=False))
-            if PRIORITY[target] > PRIORITY[t]:
-                t = target
-        case Send(p):
-            dest = p.ident
-            qpkt_count += 1
-            p = replace(p, ident=t)          # the receiver sees the sender's id
-            tasks = tasks.set(t, replace(task, data=data, queue=queue,
-                                         waiting=waiting))
-            d = tasks[dest]
-            tasks = tasks.set(dest, replace(d, queue=d.queue + (p,)))
-            if not d.queue and PRIORITY[dest] > PRIORITY[t]:
-                t = dest
-    return replace(state, tasks=tasks, current=t,
-                   hold_count=hold_count, qpkt_count=qpkt_count)
+    with mutate(state) as s:
+        me = s.tasks[t]
+        packet = None
+        if task.waiting and task.queue:      # waiting with a packet: take it
+            packet = task.queue[0]
+            me.queue = task.queue[1:]
+            me.waiting = False
+            if trace is not None and t >= I_DEVA:
+                trace(packet.datum)
+        me.data, action = step(task.data, packet)
+        match action:
+            case Wait():
+                me.waiting = True
+            case Hold():
+                s.hold_count += 1
+                me.holding = True
+                t = NEXT[t]
+            case Release(target):
+                s.tasks[target].holding = False
+                if PRIORITY[target] > PRIORITY[t]:
+                    t = target
+            case Send(p):
+                s.qpkt_count += 1
+                dest = s.tasks[p.ident]
+                was_empty = not dest.queue
+                dest.queue += (replace(p, ident=t),)   # receiver sees sender's id
+                if was_empty and PRIORITY[p.ident] > PRIORITY[t]:
+                    t = p.ident
+        s.current = t
+    return finish(s)
 
 
 def schedule(trace=None):

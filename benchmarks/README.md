@@ -24,7 +24,8 @@ folding. Pure record tests do not require SQLGlot.
     <name>/hybrid.py      an earlier, partly mutable conversion kept as a
                           comparison control (go, michi, deltablue, richards,
                           buildgraph)
-    <name>/mutate.py      experimental: idiomatic.py written with grail.mutate
+    <name>/replace.py     the previous idiomatic version, building snapshots with
+                          grail.replace and transients instead of grail.mutate
                           drafts (richards, deltablue; not timed by the harness)
     bpe_tokeniser/data/   the upstream training corpus
     buildgraph/challenge/, buildgraph/graphs/wide.json
@@ -138,11 +139,11 @@ Repetitions can run on separate threads.
 
 **deltablue** - pyperformance `bm_deltablue`: the incremental constraint
 solver.  Solver state is a value (a `PVector` of `Var` records plus
-direction/constraint vectors by id); every operation returns a new snapshot,
-editing through transients.  `hybrid.py` keeps the earlier
-record-of-mutable-lists solver.  `mutate.py` edits each operation's snapshot
-through a `grail.mutate` draft instead (natively about 1.06x slower than
-`idiomatic.py` free-threaded, 1.14x with the JIT).
+direction/constraint vectors by id); every operation edits a `grail.mutate`
+draft of the snapshot and returns the finished new one.  `hybrid.py` keeps the
+earlier record-of-mutable-lists solver; `replace.py` the version with PVector
+transients and `copy.replace` (natively about 3% faster free-threaded, 12%
+with the JIT).
 
 **fannkuch** - pyperformance `bm_fannkuch`: maximum pancake flips over all
 permutations of 0..n-1.  Ranges of permutation indices (`Chunk` value
@@ -202,10 +203,10 @@ rendered in parallel.
 **richards** - pyperformance `bm_richards`: Martin Richards' OS-kernel
 simulation.  The scheduler state is an immutable snapshot (a record of a
 persistent `PVector` table of `Task` records, the current task and counters)
-advanced by the pure `scheduler_step` with `PVector.set` and `grail.replace`.
-`hybrid.py` keeps the earlier scheduler over local mutable lists.
-`mutate.py` is the same transition written with a `grail.mutate` draft; it is
-not timed by the harness (natively about 1.2x slower than `idiomatic.py`).
+advanced by the pure `scheduler_step`, which edits a `grail.mutate` draft of the
+state.  `hybrid.py` keeps the earlier scheduler over local mutable lists;
+`replace.py` the version with explicit `PVector.set` and `grail.replace` calls
+(natively about 1.2x faster: drafts cost about 20% here).
 
 **sqlglot_port** - Partial SQLGlot 4.6.0 conversion: immutable expression trees,
 record-native simplification, Boolean normalization, compact SQL generation,

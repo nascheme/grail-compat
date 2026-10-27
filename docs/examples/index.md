@@ -16,7 +16,7 @@ benchmark workload.
 
 - [Ray tracer](raytrace.md): separate geometric types and open operations.
 - [Richards](richards.md): pure task steps and a snapshot kernel.
-- [DeltaBlue](deltablue.md): graph IDs and transient batches.
+- [DeltaBlue](deltablue.md): graph IDs and drafts of the solver.
 - [Aggregate](aggregate.md): private folds and a pure merge.
 - [Michi](michi.md): path-copying trees and task-local randomness.
 

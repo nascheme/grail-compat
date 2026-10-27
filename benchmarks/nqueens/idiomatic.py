@@ -24,7 +24,6 @@ Grail design
 from __future__ import annotations
 
 import itertools
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 
@@ -86,8 +85,9 @@ def n_queens(problem: Problem, *, threads: int = 8,
     if threads <= 1:
         parts = [task(problem, c) for c in firsts]
     else:
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            parts = list(pool.map(task, itertools.repeat(problem), firsts))
+        with grail.Pool(threads) as pool:
+            parts = grail.pmap(lambda c: task(problem, c), firsts, chunk=1,
+                               pool=pool)
     return [s for part in parts for s in part]
 
 

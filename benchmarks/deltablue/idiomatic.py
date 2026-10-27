@@ -78,7 +78,6 @@ this one.
 import copy
 import itertools
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 
@@ -511,12 +510,13 @@ def projection_test(n: int) -> Solver:
     return s
 
 
-def delta_blue(n: int, pool: ThreadPoolExecutor | None = None):
+def delta_blue(n: int, pool: grail.Pool | None = None):
     """One benchmark call: both tests, concurrently when given a thread pool."""
     if pool is not None:
-        chain = pool.submit(chain_test, n)
-        projection = pool.submit(projection_test, n)
-        return chain.result(), projection.result()
+        chain, projection = grail.pmap(lambda test: test(n),
+                                       (chain_test, projection_test),
+                                       chunk=1, pool=pool)
+        return chain, projection
     return chain_test(n), projection_test(n)
 
 
@@ -531,7 +531,7 @@ def main(n=100, threads=8):
     Only two tasks exist, so more than two threads add nothing.
     """
     if threads > 1:
-        with ThreadPoolExecutor(min(threads, 2)) as pool:
+        with grail.Pool(min(threads, 2)) as pool:
             return delta_blue(n, pool)
     return delta_blue(n)
 

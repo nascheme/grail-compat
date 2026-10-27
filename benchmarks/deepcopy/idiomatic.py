@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import copy
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 from grail import PMap, PVector
@@ -68,8 +67,8 @@ def _run(task, n: int, threads: int) -> float:
     shares = _split(n, threads)
     if len(shares) == 1:
         return task(shares[0])
-    with ThreadPoolExecutor(max_workers=len(shares)) as pool:
-        return sum(pool.map(task, shares))
+    with grail.Pool(len(shares)) as pool:
+        return sum(grail.pmap(task, shares, chunk=1, pool=pool))
 
 
 def a_states():

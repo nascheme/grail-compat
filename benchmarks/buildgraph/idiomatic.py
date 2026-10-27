@@ -27,19 +27,20 @@ Structure
   holds nothing from the harness, so it conforms as a value; every worker
   reads it without synchronization.
 * Run holds the state that changes, and all of it is in atoms: one
-  Atom[int] per target counting unfinished dependencies, one write-once
-  Atom[bytes | None] per target for its result, and an Atom[int] count of
-  targets still to build.  `pending[i].add(-1) == 0` is the portable
-  spelling of mpage's lock xadd: exactly one thread sees zero, so exactly
-  one thread schedules each target, with no lock and no ctypes.  add() is
-  native integer arithmetic on the cell, with no Python callback.
-* The ready queue is a queue.SimpleQueue, the stdlib's channel; the
-  record only holds a reference to it.
-* Workers are long-running loops on a module-level ThreadPoolExecutor
-  that is warmed at import, so a build pays no thread start-up.  The
-  calling thread runs one of the loops itself.
-* Unlike the submissions, a failing build() does not hang the pool: the
-  worker posts stop sentinels and the exception reaches the caller.
+  Atom[int] per target counting unfinished dependencies and one write-once
+  Atom[bytes | None] per target for its result.  `pending[i].add(-1) == 0`
+  is the portable spelling of mpage's lock xadd: exactly one thread sees
+  zero, so exactly one thread schedules each target, with no lock and no
+  ctypes.  add() is native integer arithmetic on the cell, with no Python
+  callback.
+* Scheduling is a grail.Pool scope, which replaces the ready queue, the
+  worker loops and their stop sentinels: the sources are spawned, and the
+  task that releases a dependent spawns it.  As in the submissions, a task
+  keeps the first (heaviest) dependent it releases and builds it next
+  itself; the others go on its worker's deque, where idle workers steal
+  them.  Leaving the scope waits for every target.
+* A failing build() cancels the scope: targets not yet started are
+  skipped and the caller gets the error in an ExceptionGroup.
 
 The harness's Target objects are mutable dataclasses owned by the harness,
 and the rules require calling Target.build (the harness instruments it).
@@ -54,16 +55,12 @@ from __future__ import annotations
 
 import os
 import sys
-import threading
-from concurrent.futures import ThreadPoolExecutor
-from queue import SimpleQueue
 
 import grail
 
 # With the GIL, extra threads only add switching (4x slower than one on 28).
 _GIL = getattr(sys, "_is_gil_enabled", lambda: True)()
-DEFAULT_THREADS = 1 if _GIL else (os.cpu_count() or 8)
-_STOP = -1          # queue sentinel: no more work for this run
+DEFAULT_THREADS = 1 if _GIL else min(os.cpu_count() or 8, 8)
 
 
 # ------------------------------------------------------------------ data
@@ -87,14 +84,11 @@ class Plan:
 
 @grail.record
 class Run:
-    """Per-build state: the harness adapter, atoms and a channel."""
+    """Per-build state: the harness adapter and atoms."""
     plan: Plan
     build: tuple            # per job: its Target's bound build method
     pending: tuple          # tuple[Atom[int], ...]: unfinished deps
     results: tuple          # tuple[Atom[bytes | None], ...], write-once
-    remaining: grail.Atom   # Atom[int]: targets not yet built
-    ready: SimpleQueue      # target indices ready to build, or _STOP
-    workers: int
 
 
 def make_plan(graph) -> Plan:
@@ -114,30 +108,19 @@ def make_plan(graph) -> Plan:
     return Plan(jobs, tuple(i for i, ds in enumerate(deps) if not ds))
 
 
-def start_run(plan: Plan, targets, workers: int) -> Run:
+def start_run(plan: Plan, targets) -> Run:
     """targets: the harness's Target objects, in plan job order."""
-    run = Run(
+    return Run(
         plan=plan,
         build=tuple(t.build for t in targets),
         pending=tuple(grail.Atom(len(job.deps)) for job in plan.jobs),
         results=tuple(grail.Atom(None) for _ in plan.jobs),
-        remaining=grail.Atom(len(plan.jobs)),
-        ready=SimpleQueue(),
-        workers=workers,
     )
-    for i in plan.sources:
-        run.ready.put(i)
-    return run
 
 
-# --------------------------------------------------------------- workers
+# ----------------------------------------------------------------- tasks
 
-def stop_all(run: Run) -> None:
-    for _ in range(run.workers):
-        run.ready.put(_STOP)
-
-
-def build_one(run: Run, i: int) -> int:
+def build_one(run: Run, scope: grail.Scope, i: int) -> int:
     """Build target i; return a dependent it made ready, or -1."""
     job = run.plan.jobs[i]
     results = run.results
@@ -154,54 +137,24 @@ def build_one(run: Run, i: int) -> int:
             if keep < 0:
                 keep = k
             else:
-                run.ready.put(k)
-    if run.remaining.add(-1) == 0:
-        stop_all(run)
+                scope.spawn(build_chain, run, scope, k)
     return keep
 
 
-def worker(run: Run) -> None:
-    ready = run.ready
-    try:
-        i = ready.get()
-        while i != _STOP:
-            i = build_one(run, i)
-            if i < 0:
-                i = ready.get()
-    except BaseException:
-        stop_all(run)       # wake the others so the caller sees the error
-        raise
-
-
-# ------------------------------------------------------------------ pool
-
-_POOL_SIZE = max(DEFAULT_THREADS - 1, 1)   # the caller is the last worker
-_POOL = ThreadPoolExecutor(max_workers=_POOL_SIZE,
-                           thread_name_prefix="grail-build")
-
-
-def _warm_pool(n: int) -> None:
-    """Start all pool threads now rather than on the first build."""
-    barrier = threading.Barrier(n)
-    for f in [_POOL.submit(barrier.wait) for _ in range(n)]:
-        f.result()
-
-
-_warm_pool(_POOL_SIZE)
-_pool_lock = threading.Lock()   # one build at a time owns the pool
+def build_chain(run: Run, scope: grail.Scope, i: int) -> None:
+    """Build target i, then each dependent this task keeps."""
+    while i >= 0:
+        i = build_one(run, scope, i)
 
 
 def build_all(graph, threads: int = DEFAULT_THREADS) -> dict[str, bytes]:
     plan = make_plan(graph)
     if not plan.jobs:
         return {}
-    threads = max(1, min(threads, _POOL_SIZE + 1))
-    run = start_run(plan, graph.targets.values(), threads)
-    with _pool_lock:
-        futures = [_POOL.submit(worker, run) for _ in range(threads - 1)]
-        worker(run)
-        for f in futures:
-            f.result()
+    run = start_run(plan, graph.targets.values())
+    with grail.Pool(max(1, threads)) as pool, pool.scope() as scope:
+        for i in plan.sources:
+            scope.spawn(build_chain, run, scope, i)
     return {job.name: r.value for job, r in zip(plan.jobs, run.results)}
 
 

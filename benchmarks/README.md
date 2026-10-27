@@ -80,8 +80,10 @@ polymorphism; no classes with methods.  Shared state is immutable: records,
 tuples and persistent collections (`PVector`, `PMap`, `PSet`, `FloatVector`);
 anything that changes lives in an `Atom` or in thread-local scratch (plain
 lists and dicts inside one function).  Where the work divides, the program
-splits it over a `ThreadPoolExecutor` (`threads=` parameter), keeping a
-deterministic mode that reproduces upstream's result.  The algorithm is kept
+splits it over a `grail.Pool(threads)` (`threads=` parameter, default 8):
+`grail.pmap` for independent items, `grail.parallel_reduce` for
+reductions, and a pool scope (`spawn`) where tasks create more tasks.  A
+deterministic mode reproduces upstream's result.  The algorithm is kept
 unless the notes below say otherwise.  `tests/test_native.py` checks that
 every class in an `idiomatic.py` is a record.
 
@@ -89,10 +91,11 @@ every class in an `idiomatic.py` is a record.
 
 **aggregate** - Per-key sums of 3,628,800 `(key, value)` pairs, from
 cereggii's [`AtomicDict.reduce()`](https://dpdani.github.io/cereggii/examples/AtomicDict/reduce/)
-example linked from the free-threading guide.  Each thread folds its share
-into a private dict and publishes it as a `PMap`; the partial maps are
-merged in chunk order (`PMap.update_with`) or, with `combine="atom"`, each
-swapped into one shared `Atom` with a pure merge function.
+example linked from the free-threading guide.  Each chunk is folded into a
+private dict and published as a `PMap`; the partial maps are merged in
+chunk order (`PMap.update_with`) or, with `combine="atom"`,
+scope tasks each swap theirs into one shared `Atom` with a pure merge
+function.
 
 **bpe_tokeniser** - pyperformance `bm_bpe_tokeniser` (Shantanu Jain, after
 tiktoken): byte-pair-encoding training to 1,024 tokens on the Frankenstein
@@ -106,8 +109,8 @@ target's `build()` exactly once, after all its dependencies, over a DAG, and
 return all results.  `reference.py` (the challenge's single-threaded
 topological-order reference) is the original.  The idiomatic version's `Plan` is a
 value record of `Job` records by index; per-run state is atoms (one
-fetch-and-add counter per target, write-once result cells) and a
-`SimpleQueue`, worked by a persistent thread pool.  `hybrid.py` keeps the
+fetch-and-add counter per target, write-once result cells), and a pool
+scope runs each target as a task spawned by whichever task releases it.  `hybrid.py` keeps the
 earlier Plan that held the harness's mutable `Target` objects.  Run:
 `idiomatic.py buildgraph/graphs/wide.json [threads]` (the vendored challenge
 modules are put on `sys.path`); `challenge/harness.py` times and validates
@@ -172,8 +175,9 @@ iteration keeps local numeric tables and upstream's Gauss-Seidel order.
 **michi** - Petr Baudis's Michi Go engine (nascheme's free-threading fork),
 the guide's Monte Carlo example: 1,400 MCTS iterations on an empty 13x13
 board.  Positions and the tree are values; pattern tables are persistent
-maps; parallel playouts address nodes by child-index paths and are applied
-to the current root.  `hybrid.py` keeps the earlier mutable-struct
+maps.  With threads, searcher tasks in a pool scope share the root in an
+`Atom`: descents are published with `compare_and_set` and playout results
+backed up with `swap`, addressing nodes by child-index paths.  `hybrid.py` keeps the earlier mutable-struct
 conversion.  Run: `idiomatic.py [PATTERNS_DIR [threads]]`; given
 `michi/patterns` (after `fetch_patterns.py`) it also loads the large
 patterns, which needs Python 3.14+ (`compression.zstd`) or the `zstd` tool.
@@ -233,7 +237,7 @@ and are slow on grail-compat.
 backend name and similar) skip on grail-compat.
 
 - `test_native.py`: imports every `idiomatic.py`/`hybrid.py` (except
-  buildgraph, which starts a thread pool at import), checks that idiomatic versions
+  buildgraph's `hybrid.py`, which starts a thread pool at import), checks that idiomatic versions
   define only records and that nothing shadows `grail`, and exercises
   generic dispatch, record arithmetic, deepcopy/value conformance, `PMap`
   merges with `Atom.swap` and chaos's path-copying updates.

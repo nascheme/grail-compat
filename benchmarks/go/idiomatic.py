@@ -61,7 +61,6 @@ from __future__ import annotations
 import copy
 import math
 import random
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 
@@ -476,8 +475,8 @@ def computer_move(history: tuple[int, ...], *, seed: int = 1, threads: int = 8,
     if n == 1:
         parts = [worker(0)]
     else:
-        with ThreadPoolExecutor(max_workers=n) as pool:
-            parts = list(pool.map(worker, range(n)))
+        with grail.Pool(n) as pool:
+            parts = grail.pmap(worker, range(n), chunk=1, pool=pool)
     stats = merge_stats(parts)
     return most_visited(stats), stats
 

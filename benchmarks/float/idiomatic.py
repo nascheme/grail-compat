@@ -29,7 +29,6 @@ Design
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 from math import cos, sin, sqrt
 
 import grail
@@ -73,8 +72,9 @@ def benchmark(n: int = POINTS, threads: int = 8) -> Point:
     if threads <= 1 or n < 2 * threads:
         return max_normalized(0, n)
     bounds = [n * k // threads for k in range(threads + 1)]
-    with ThreadPoolExecutor(threads) as pool:
-        parts = list(pool.map(max_normalized, bounds[:-1], bounds[1:]))
+    with grail.Pool(threads) as pool:
+        parts = grail.pmap(lambda b: max_normalized(*b),
+                           list(zip(bounds[:-1], bounds[1:])), chunk=1, pool=pool)
     acc = parts[0]
     for p in parts[1:]:
         acc = maximize(acc, p)

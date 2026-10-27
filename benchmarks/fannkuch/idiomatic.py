@@ -29,7 +29,6 @@ Grail design
 from __future__ import annotations
 
 import math
-from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 
 import grail
@@ -111,8 +110,8 @@ def fannkuch(n: int, *, threads: int = 8, chunks: int | None = None) -> Result:
     if threads <= 1:
         results = [run_chunk(c) for c in work]
     else:
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            results = list(pool.map(run_chunk, work))
+        with grail.Pool(threads) as pool:
+            results = grail.pmap(run_chunk, work, chunk=1, pool=pool)
     return reduce(combine, results, Result(0, 0))
 
 

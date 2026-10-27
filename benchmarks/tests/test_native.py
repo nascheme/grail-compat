@@ -30,10 +30,11 @@ class NativeTests(unittest.TestCase):
         if sysconfig.get_config_var("Py_GIL_DISABLED"):
             self.assertFalse(sys._is_gil_enabled())
         self.assertFalse(Path(grail.__file__).resolve().is_relative_to(BENCHMARKS))
-        # Buildgraph eagerly warms a machine-sized thread pool at import;
-        # leave its execution to the challenge harness.
+        # buildgraph's hybrid.py eagerly warms a machine-sized thread pool
+        # at import; leave its execution to the challenge harness.
         for path in sorted(BENCHMARKS.glob("*/*.py")):
-            if path.stem in ("idiomatic", "hybrid") and path.parent.name != "buildgraph":
+            if path.stem == "idiomatic" or (path.stem == "hybrid"
+                                            and path.parent.name != "buildgraph"):
                 with self.subTest(path=path.relative_to(BENCHMARKS)):
                     load_benchmark(path.parent.name, path.name)
         if sysconfig.get_config_var("Py_GIL_DISABLED"):

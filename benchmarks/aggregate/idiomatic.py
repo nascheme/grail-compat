@@ -22,9 +22,13 @@ Structure
 * fold() reduces one chunk into a local dict and returns it frozen as a
   PMap.  The dict never leaves its thread.
 * Two ways to combine, with the same result:
-  - "merge" (default): the caller merges the chunk results in chunk order
-    with PMap.update_with (merge-with).
-  - "atom": each chunk swaps its PMap into one shared Atom[PMap].  This is
+  - "merge" (default): grail.pmap folds the chunks and the caller merges
+    their results in chunk order with PMap.update_with (merge-with).
+    grail.parallel_reduce would merge them as a tree, but it runs its
+    first fold in the calling thread to time it before starting the
+    others, which serializes one whole chunk here.
+  - "atom": each chunk is a scope task that swaps its PMap into one shared
+    Atom[PMap].  This is
     the Grail counterpart of AtomicDict.reduce(), one CAS per chunk instead
     of one per pair.
 * A per-pair swap on Atom[PMap] would also be correct, but it copies a
@@ -35,8 +39,6 @@ Structure
 from __future__ import annotations
 
 import operator
-import os
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 
@@ -75,25 +77,33 @@ def split(size: int, parts: int) -> list[tuple[int, int]]:
     return [(lo, hi) for lo, hi in zip(edges, edges[1:]) if lo < hi]
 
 
-def aggregate(w: Workload = Workload(), threads: int = os.cpu_count() or 8,
+def aggregate(w: Workload = Workload(), threads: int = 8,
               combine: str = "merge") -> grail.PMap:
     if threads <= 1:
         return fold(w, 0, w.size)
     ranges = split(w.size, threads * CHUNKS_PER_THREAD)
-    with ThreadPoolExecutor(max_workers=threads) as pool:
+    with grail.Pool(threads) as pool:
         if combine == "merge":
+            parts = grail.pmap(lambda r: fold(w, *r), ranges, chunk=1,
+                               pool=pool)
             result = grail.PMap()
-            for part in pool.map(lambda r: fold(w, *r), ranges):
+            for part in parts:
                 result = merge(result, part)
             return result
         if combine == "atom":
             totals = grail.Atom(grail.PMap())
-            list(pool.map(lambda r: totals.swap(merge, fold(w, *r)), ranges))
+
+            def add(lo: int, hi: int) -> None:
+                totals.swap(merge, fold(w, lo, hi))
+
+            with pool.scope() as s:
+                for r in ranges:
+                    s.spawn(add, *r)
             return totals.value
     raise ValueError(f"unknown combine {combine!r}")
 
 
-def main(size: int = 3_628_800, threads: int = os.cpu_count() or 8,
+def main(size: int = 3_628_800, threads: int = 8,
          combine: str = "merge") -> grail.PMap:
     return aggregate(Workload(size=size), threads=threads, combine=combine)
 

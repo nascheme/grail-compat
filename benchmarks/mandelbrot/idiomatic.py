@@ -23,17 +23,14 @@ Structure
 * escape_count() is the original's loop with `z * z` for `z ** 2`; for
   complex numbers CPython computes both with the same multiply, so the
   counts are identical (checked by the harness).
-* Parallelism: rows in chunks of 4, mapped in order, so the image is the
+* Parallelism: rows in chunks of 4 (grail.pmap's chunk), mapped in order, so the image is the
   same for any thread count.  Interior rows cost up to 2000 iterations a
   pixel and outer rows a few, so small chunks matter for load balance.
 """
 
 from __future__ import annotations
 
-import os
 import sys
-from concurrent.futures import ThreadPoolExecutor
-from itertools import batched
 
 import grail
 
@@ -84,23 +81,18 @@ def row(xs: tuple[float, ...], y: float, max_iterations: int) -> tuple[int, ...]
     return tuple(escape_count(complex(x, y), max_iterations) for x in xs)
 
 
-def rows(xs, ys, max_iterations) -> list[tuple[int, ...]]:
-    return [row(xs, y, max_iterations) for y in ys]
-
-
-def render(view: View = View(), threads: int = os.cpu_count() or 8) -> Image:
+def render(view: View = View(), threads: int = 8) -> Image:
     xs, ys = x_domain(view), y_domain(view)
-    chunks = list(batched(ys, CHUNK_ROWS))
     if threads <= 1:
-        parts = [rows(xs, c, view.max_iterations) for c in chunks]
+        image = [row(xs, y, view.max_iterations) for y in ys]
     else:
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            parts = list(pool.map(rows, [xs] * len(chunks), chunks,
-                                  [view.max_iterations] * len(chunks)))
-    return Image(view=view, rows=tuple(r for part in parts for r in part))
+        with grail.Pool(threads) as pool:
+            image = grail.pmap(lambda y: row(xs, y, view.max_iterations), ys,
+                               chunk=CHUNK_ROWS, pool=pool)
+    return Image(view=view, rows=tuple(image))
 
 
-def main(nrows: int = 800, ncols: int = 800, threads: int = os.cpu_count() or 8):
+def main(nrows: int = 800, ncols: int = 800, threads: int = 8):
     return render(View(nrows=nrows, ncols=ncols), threads=threads)
 
 

@@ -23,8 +23,8 @@ Structure
   are plain functions of a Position.
 * Patterns is a record of the shared, read-only tables: the 3x3 pattern
   set (frozenset), the spatial dictionary and the pattern probabilities
-  (PMap).  Workers only read the 3x3 set; the large patterns are used for
-  priors on the main thread.
+  (PMap).  Playouts only read the 3x3 set; the large patterns are used for
+  priors when a descent expands a leaf.
 * A playout takes a Position and the AMAF map so far (a tuple) and returns
   a Playout record (score, AMAF map, owner map); its working state is local.
 * The search tree is a value: `Node` records whose children tuples are
@@ -32,8 +32,7 @@ Structure
   child indices from the root.  A descent returns a new root (its visit
   counts and any expansion, path-copied) and the path; a playout result is
   applied to whichever root is current by rebuilding that path, with AMAF
-  updates on the children of each node on it.  The search thread holds the
-  only current root; old roots stay valid.  The previous design (mutable
+  updates on the children of each node on it.  Old roots stay valid.  The previous design (mutable
   `Node` structs, same algorithm) is kept as hybrid.py.
 * No generic functions: nothing is polymorphic.  Move suggestions carry a
   kind constant and the capturing group's point instead of the original's
@@ -42,18 +41,27 @@ Structure
 
 Parallelism
 -----------
-The original's leaf parallelism is kept: the search thread owns the tree,
-descends (with "virtual loss" visits), and hands immutable positions to a
-pool of playout workers, keeping one playout per worker in flight.  The
-original polls its jobs with short timed waits; here the search thread
-blocks in concurrent.futures.wait(FIRST_COMPLETED).
+The original uses leaf parallelism: its search thread owns the tree,
+descends (with "virtual loss" visits) and hands positions to a pool of
+playout workers, polling them with short timed waits.  Here the tree is a
+value, so it needs no owner: the current root is an Atom[Node], and each
+of `threads` searcher tasks in a grail.Pool scope runs whole iterations.
+A descent is computed from the current root and published with
+compare_and_set, and redone from the newer root if another task got there
+first; a playout's result is backed up with swap(tree_update, ...), which
+applies it to whatever root is current.  Visit counts from a descent are
+the virtual loss that steers concurrent descents apart, as in the
+original.  There is no search thread to wait for results, and no result
+is dropped: at an early stop the playouts already running still finish
+and are backed up.
 
 * threads=1 is the exact mode: descend, playout, update in strict order
   with one RNG.  It reproduces the original run the same way (serially,
   with RND seeded the same): identical best move and identical statistics
   in every tree node.
 * threads=N gives playout i its own RNG seeded from (seed, i), so each
-  playout's result does not depend on which thread ran it.  Which results
+  playout's result does not depend on which thread ran it (descent i
+  breaks urgency ties with another RNG of its own).  Which results
   have reached the tree at each descent still depends on timing, as in the
   original, so the search is not deterministic; the original's isn't
   either (its own process-pool mode included).
@@ -69,8 +77,8 @@ no seed makes the run repeatable.
 
 Left out: the GTP and text UIs, `print_pos`/`dump_subtree` reporting, the
 `disp` debug traces, and resignation.  The search keeps the original's
-early-stop rule and owner map (averaged over issued playouts, including any
-whose results were dropped at the early stop, as in the original).
+early-stop rule and owner map (averaged over the playouts run; the
+original also counts those whose results it dropped at the early stop).
 """
 
 from __future__ import annotations
@@ -78,13 +86,13 @@ from __future__ import annotations
 import copy
 import io
 import math
+import operator
 import os
 import random
 import re
 import shutil
 import subprocess
 import sys
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from functools import reduce
 from pathlib import Path
 
@@ -716,10 +724,10 @@ def mcbenchmark(n: int, *, seed: int = 0, threads: int = 1) -> float:
         rng = random.Random(seed)
         total = sum(mcplayout(start, blank, rng, pats).score for _ in range(n))
     else:
-        with ThreadPoolExecutor(threads) as pool:
-            total = sum(pool.map(
+        with grail.Pool(threads) as pool:
+            total = sum(grail.pmap(
                 lambda i: mcplayout(start, blank, job_rng(seed, i), pats).score,
-                range(n)))
+                range(n), chunk=1, pool=pool))
     return float(total) / n
 
 
@@ -896,46 +904,53 @@ def tree_search(tree: Node, n: int, pats: Patterns, *, seed: int = 0,
     rng = random.Random(seed)
     if tree.children is None:
         tree = expand(tree, rng, pats)
-    owner_sum = [0] * (W * W)
-
-    def record(path, r: Playout):
-        nonlocal tree
-        tree = tree_update(tree, path, r.amaf, r.score)
-        for c in range(W * W):
-            owner_sum[c] += r.owner[c]
-
-    i = 0
     if threads == 1:
+        owner_sum = [0] * (W * W)
+        i = 0
         while i < n:
             i += 1
             amaf = W * W * [0]
             tree, path = tree_descend(tree, amaf, rng, pats)
-            record(path, mcplayout(leaf(tree, path).pos, tuple(amaf), rng, pats))
+            r = mcplayout(leaf(tree, path).pos, tuple(amaf), rng, pats)
+            tree = tree_update(tree, path, r.amaf, r.score)
+            for c in range(W * W):
+                owner_sum[c] += r.owner[c]
             if _early_stop(tree, i, n):
                 break
-    else:
-        pool = ThreadPoolExecutor(threads, thread_name_prefix="michi")
-        inflight = {}                          # future -> tree path
-        try:
-            while True:
-                while i < n and len(inflight) < threads:
-                    i += 1
-                    amaf = W * W * [0]
-                    tree, path = tree_descend(tree, amaf, rng, pats)
-                    f = pool.submit(mcplayout, leaf(tree, path).pos, tuple(amaf),
-                                    job_rng(seed, i), pats)
-                    inflight[f] = path
-                if not inflight:
-                    break
-                done, _ = wait(inflight, return_when=FIRST_COMPLETED)
-                for f in done:
-                    record(inflight.pop(f), f.result())
-                if _early_stop(tree, i, n):
-                    break                      # in-flight results dropped
-        finally:
-            pool.shutdown(wait=True, cancel_futures=True)
+        return tree, best_move(tree), tuple(float(o) / i for o in owner_sum)
 
-    return tree, best_move(tree), tuple(float(o) / i for o in owner_sum)
+    root = grail.Atom(tree)
+    issued = grail.Atom(0)                     # iterations started
+    stop = grail.Atom(False)
+    finished = grail.Atom(0)                   # playouts backed up
+    owner_sums = grail.Atom((0,) * (W * W))    # summed over those playouts
+
+    def search() -> None:
+        while not stop.value:
+            i = issued.add(1)
+            if i > n:
+                return
+            ties = random.Random(f"{seed}/{i}/descent")
+            while True:
+                old = root.value
+                amaf = W * W * [0]
+                new, path = tree_descend(old, amaf, ties, pats)
+                if root.compare_and_set(old, new):
+                    break
+            r = mcplayout(leaf(new, path).pos, tuple(amaf), job_rng(seed, i),
+                          pats)
+            tree = root.swap(tree_update, path, r.amaf, r.score)
+            owner_sums.swap(lambda s: tuple(map(operator.add, s, r.owner)))
+            finished.add(1)
+            if _early_stop(tree, i, n):
+                stop.reset(True)
+
+    with grail.Pool(threads) as pool, pool.scope() as s:
+        for _ in range(threads):
+            s.spawn(search)
+    tree = root.value
+    done = finished.value
+    return tree, best_move(tree), tuple(float(o) / done for o in owner_sums.value)
 
 
 PATTERNS_3X3 = load_patterns(None)
@@ -962,7 +977,7 @@ if __name__ == "__main__":
     patterns = sys.argv[1] if len(sys.argv) > 1 else None
     gil = getattr(sys, "_is_gil_enabled", lambda: True)()
     threads = (int(sys.argv[2]) if len(sys.argv) > 2
-               else 1 if gil else os.cpu_count() or 1)
+               else 1 if gil else min(os.cpu_count() or 1, 8))
     t0 = time.perf_counter()
     move = main(patterns_dir=patterns, threads=threads)
     print(f"best move {str_coord(move)}  threads={threads}  "

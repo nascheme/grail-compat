@@ -37,8 +37,6 @@ and is not used by ``main``.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-
 import grail
 from grail import ops
 
@@ -197,8 +195,9 @@ def ensemble(references=("sun", "jupiter", "saturn", "uranus", "neptune"),
     as running each simulation alone, in any thread count."""
     if threads <= 1:
         return [run(iterations, r) for r in references]
-    with ThreadPoolExecutor(threads) as pool:
-        return list(pool.map(lambda r: run(iterations, r), references))
+    with grail.Pool(threads) as pool:
+        return grail.pmap(lambda r: run(iterations, r), references, chunk=1,
+                          pool=pool)
 
 
 if __name__ == "__main__":

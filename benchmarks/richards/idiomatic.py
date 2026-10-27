@@ -59,7 +59,6 @@ thread.
 """
 
 import copy
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 
@@ -318,8 +317,9 @@ def main(iterations=1, threads=8):
     they run concurrently (a throughput variant; results are identical).
     """
     if iterations > 1 and threads > 1:
-        with ThreadPoolExecutor(min(threads, iterations)) as ex:
-            results = list(ex.map(lambda _: schedule(), range(iterations)))
+        with grail.Pool(min(threads, iterations)) as pool:
+            results = grail.pmap(lambda _: schedule(), range(iterations),
+                                 chunk=1, pool=pool)
     else:
         results = [schedule() for _ in range(iterations)]
     return all(check(r) for r in results), results

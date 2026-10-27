@@ -26,7 +26,8 @@ Structure
   recursionDepth counter on the scene becomes a `depth` argument.
 
 Parallelism: rows are independent, so each row is one task returning its
-bytes; the image is the rows concatenated.  The result is the same for any
+bytes, and grail.pmap sizes the chunks of rows; the image is the rows
+concatenated.  The result is the same for any
 thread count.
 
 Faithfulness notes (quirks of the original kept so pixels match):
@@ -40,7 +41,6 @@ Faithfulness notes (quirks of the original kept so pixels match):
 from __future__ import annotations
 
 import math
-from concurrent.futures import ThreadPoolExecutor
 
 import grail
 
@@ -369,8 +369,9 @@ def render(scene: Scene, width: int, height: int, threads: int = 8) -> bytes:
     if threads == 1:
         rows = [render_row(scene, view, width, y) for y in ys]
     else:
-        with ThreadPoolExecutor(max_workers=threads) as ex:
-            rows = list(ex.map(lambda y: render_row(scene, view, width, y), ys))
+        with grail.Pool(threads) as pool:
+            rows = grail.pmap(lambda y: render_row(scene, view, width, y), ys,
+                              pool=pool)
     return b"".join(rows)
 
 

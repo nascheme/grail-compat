@@ -46,7 +46,6 @@ from __future__ import annotations
 
 import math
 import random
-from concurrent.futures import ThreadPoolExecutor
 from copy import replace
 
 import grail
@@ -262,10 +261,10 @@ def create_image(g: ChaosGame, w: int, h: int, iterations: int, seed: int,
         parts = [run_chain(g, w, h, n, s, legacy_aliasing)
                  for n, s in zip(counts, seeds)]
     else:
-        with ThreadPoolExecutor(max_workers=min(threads, chains)) as ex:
-            parts = list(ex.map(lambda ns: run_chain(g, w, h, *ns,
-                                                     legacy_aliasing),
-                                zip(counts, seeds)))
+        with grail.Pool(min(threads, chains)) as pool:
+            parts = grail.pmap(lambda ns: run_chain(g, w, h, *ns,
+                                                    legacy_aliasing),
+                               list(zip(counts, seeds)), chunk=1, pool=pool)
     # A pixel is marked (0) if any chain marked it: AND the 0/1 bitmaps,
     # done as one big-int AND so the serial merge stays cheap.
     merged = int.from_bytes(parts[0])

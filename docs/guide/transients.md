@@ -14,6 +14,12 @@ sources:
 A transient is a temporary mutable builder owned by its creating thread.
 Finish it once to publish an immutable collection.
 
+Collection `.mutate()` methods return the builders described here. To make
+several updates to a record, use a
+[`grail.mutate(record)` draft](copying.md#make-several-updates-with-a-draft)
+instead. Drafts use the function `grail.finish(draft)`, not a `.finish()`
+method, and can also edit nested records, `PVector` elements and `PMap` entries.
+
     >>> from grail import PMap
     >>> base = PMap({"tea": 2})
     >>> with base.mutate() as edits:

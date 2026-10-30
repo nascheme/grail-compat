@@ -46,5 +46,7 @@ Class patterns work with field order through `__match_args__`:
 Do not rely on records being distinct objects just because you constructed
 them separately. Compare with `==`, not `is`.
 
+For several updates, use a [draft](copying.md#make-several-updates-with-a-draft).
+
 See [defaults](defaults.md), [copying and replacement](copying.md), and
 [records reference](../reference/records.md).

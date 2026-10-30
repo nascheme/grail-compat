@@ -4,6 +4,8 @@ sources:
   - src/grail/__init__.py
   - src/grail/_core.py
   - tests/test_grail.py
+  - src/grail/_mutate.py
+  - tests/test_grail_mutate.py
 ---
 
 # Copy, replace and pickle
@@ -31,6 +33,46 @@ argument is positional-only, so you can replace a field named `obj`.
 Records also support Python's `copy.replace` on 3.13+ through their
 `__replace__` protocol hook. Use `grail.replace` in everyday Grail code;
 you do not need to call the dunder directly.
+
+## Make several updates with a draft
+
+Using `grail.mutate()` is idiomatic when you need to make a number of updates
+to a record. It gives you a temporary draft whose fields support ordinary
+assignment. Call `grail.finish()` to produce the updated record; the original
+remains unchanged.
+
+    >>> import grail
+    >>> @grail.record
+    ... class Account:
+    ...     balance: int
+    ...     transactions: int
+    >>> account = Account(balance=100, transactions=0)
+    >>> with grail.mutate(account) as draft:
+    ...     draft.balance += 50
+    ...     draft.balance -= 20
+    ...     draft.transactions += 2
+    >>> updated = grail.finish(draft)
+    >>> updated
+    Account(balance=130, transactions=2)
+    >>> account
+    Account(balance=100, transactions=0)
+
+Prefer `grail.replace()` for a simple replacement and `grail.mutate()` for a
+sequence of edits, especially when later edits depend on earlier ones.
+Drafts also support nested records, `PVector` elements and `PMap` entries,
+so you can update nested state without spelling out each enclosing
+replacement.
+
+A draft belongs to its creating thread. Leaving the `with` block seals it;
+`grail.finish()` returns the result. If the block raises an exception, the
+draft is aborted. Ordinary mutable objects stored in fields are not wrapped
+in drafts: mutating those objects still changes them directly.
+
+Drafts are currently experimental. Use them for clarity, not as a guaranteed
+performance optimization. See the [drafts reference](../reference/mutate.md)
+for supported operations and lifecycle details.
+
+## Deepcopy and pickle
 
 Deepcopy of a record with ordinary fields copies those children using the
 normal memo protocol. The immutable record is reconstructed only when its

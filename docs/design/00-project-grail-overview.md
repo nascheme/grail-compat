@@ -2,14 +2,14 @@
 
 Oct 27, 2026 · @Neil Schemenauer
 
-> "What… is your quest?"\
-"To seek the Holy Grail."
+> "What… is your quest?"  
+> "To seek the Holy Grail."
 >
 > — The Bridge of Death, *Monty Python and the Holy Grail*
 
 Project Grail is a long-term effort to give Python a new object model that an efficient VM, and eventually a JIT, can rely on, without turning Python into a static language. If the Grail is found, we will gain: closed record types for data, generic functions for behaviour, algebraic data types for closed sets of alternatives, and persistent collections, so that state which changes over time is a sequence of immutable values rather than a mutable container. Together they let many programs be written without `class`, and give the VM guarantees it can rely on. The measured payoff so far is in sharing values across threads and reusing them instead of copying; record-heavy single-thread code beats well-written mutable classes, but immutable numeric updates lag. Larger single-thread gains, such as unboxed fields and eliminated allocations, would need a JIT and remain unproven: the prototype now runs under CPython's JIT, and its optimizer already uses record guarantees to speed up numeric record code more than the original programs, but it does not yet eliminate the allocation of immutable snapshots. Extensions get an extended C API, efficient but safer than today's, one that hides more implementation details.
 
-Grail is delivered as a series of PEPs. This tab explains the whole system and how the parts fit. PEP drafts have their own tab. We want to lift proven features from other languages, not invent.
+The plan is to deliver Grail as a series of PEPs. This tab explains the whole system and how the parts fit. PEP drafts have their own tab. We want to lift proven features from other languages, rather than inventing.  I believe language research has come up with some better ideas since classes were first added to Python in version 0.91, back in 1991.
 
 ## How mature each draft is
 

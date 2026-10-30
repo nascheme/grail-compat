@@ -13,10 +13,6 @@ sources:
 
 # Grail
 
-> **Proof of concept - not recommended for production use.** grail-compat's
-> design and APIs are still subject to change. The implementation is not yet
-> well tested and is likely to contain bugs.
-
 Grail is an experimental Python API for closed immutable records, extensible
 generic functions, persistent collections, and synchronized reference cells.
 Try it on stock CPython 3.10+ with grail-compat or on the native CPython
@@ -42,9 +38,12 @@ language functionality.
     >>> label(updated["tea"])
     'tea: 3'
 
-Records hold data, not methods. Generics supply type-dependent behavior.
-Collection updates return new snapshots. Atoms coordinate changes to a shared
-reference, not mutations inside arbitrary objects.
+The key Grail idea is that data is held by immutable records. Records do not
+have methods. Instead, you have generic functions that dispatch off the first
+argument type. This allows type-dependent behavior and easy building of custom
+protocols. There are new collection types; when updated, they return new
+snapshots. Atoms coordinate changes to a shared reference, not mutations inside
+arbitrary objects.
 
 - [Why Grail?](why-grail.md) Faster code, better scaling, and fewer opportunities for races.
 - [Get started](getting-started.md) with a local installation.

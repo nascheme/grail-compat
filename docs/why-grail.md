@@ -16,8 +16,10 @@ sources:
 Grail aims to make your Python code faster, scale better across cores, and
 make concurrent programs easier to reason about. The common idea is simple:
 keep data immutable and make shared changes explicit. You get fewer places
-where races can happen, and a CPython runtime optimized for Grail gets stronger
-guarantees it can use to avoid work.
+where races can happen. It is possible to build a CPython runtime optimized
+for Grail and that makes running programs written in this style equally or more
+efficient than traditional Python style (with mutable class instances holding
+data).
 
     >>> from grail import record, replace, Atom
     >>> @record
@@ -36,7 +38,7 @@ The old snapshot stays unchanged. The two totals change together through one
 shared reference. A reader takes one snapshot and sees a consistent pair,
 even while other threads record more sales.
 
-## Faster code on a runtime built for it
+## Faster code, if the runtime is built for it
 
 Python's flexibility has a runtime cost. Attributes, classes, and behavior
 can change, so optimized code often needs checks to establish that its
@@ -52,14 +54,14 @@ assumptions still hold. Grail makes some of those assumptions permanent:
 With Grail-aware CPython, these guarantees create opportunities for faster
 construction, dispatch, copying, and access to shared data. A future optimizer
 could go further by avoiding temporary record allocations or keeping numeric
-fields unboxed. You write the data model; the runtime exploits its guarantees.
+fields unboxed.
 
 The native prototype already shows gains in record-heavy code, copying, and
-sharing. This is not a promise that every idiomatic Grail version is faster: creating new
-numeric records can still cost more than updating mutable objects in place.
-Larger gains from unboxing and allocation elimination remain future work.
-Installing grail-compat on stock Python lets you try the programming model;
-it does not add those interpreter optimizations.
+sharing. This does not confirm that an idiomatic Grail version is always
+faster: creating new numeric records can still cost more than updating mutable
+objects in place. Larger gains from unboxing and allocation elimination remain
+future work. Note that installing grail-compat on stock Python lets you try the
+programming model but it does not add the interpreter optimizations.
 
 ## Better scaling with free-threading
 
@@ -67,7 +69,7 @@ Removing the GIL lets threads execute Python code in parallel. It does not
 remove contention on shared state. If every worker updates the same container
 or takes the same lock, more workers may spend more time waiting than working.
 
-Grail encourages a different shape:
+Grail encourages a different program structure:
 
 1. Give workers an immutable input snapshot they can read without protecting
    every field access with an application lock.

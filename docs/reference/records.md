@@ -52,15 +52,20 @@ raises `TypeError` when deriving is requested. See [operators](hooks-and-ops.md)
 
 Recognized value annotations are `None`, `type(None)`, `bool`, `int`, `float`,
 `str`, `bytes`, already-defined value record types, unions entirely of value
-types, fixed tuples of value types, `tuple[T, ...]`, and `tuple[()]`.
-Bare `tuple`, `object`, `complex`, `frozenset`, collections, and unresolved
+types, fixed tuples of value types, `tuple[T, ...]`, and `tuple[()]`. Three
+forms stand for a value type: `Literal` of those scalars means a union of
+their types, `Annotated[T, ...]` means `T`, and a `type` alias means its
+value (with parameters substituted for `Alias[int]`).
+Bare `tuple`, `object`, `complex`, `frozenset`, collections, `Literal` of an
+enum member, recursive aliases and unresolved
 forward references are ordinary fields today. An unresolved annotation can
 make the declaration's annotation processing conservative; define referenced
 types first. Plans are fixed when the record type is created.
 
 Conformance uses exact scalar types: an `int` in a `float` field and a `bool`
 in an `int` field do not conform. Tuple lengths and elements and nested
-record conformance are checked recursively. Mismatches are stored unchanged.
+record conformance are checked recursively. A `Literal` field conforms by
+type: any `str` conforms to `Literal["a", "b"]`. Mismatches are stored unchanged.
 If either of two records does not conform, their fields use ordinary-field
 rules for substitutability and equality.
 
@@ -70,20 +75,35 @@ rules for substitutability and equality.
 | --- | --- |
 | `record_fields(record_type)` | Tuple of `FieldInfo` entries in field order |
 | `record_values(obj)` | Fresh `dict` of field names to current references, in field order |
+| `is_record(obj)` | `bool`: `obj` is a record type; any other object gives false, not an error |
 | `is_value_record(record_type)` | `bool`: every declared field has a value plan; true for an empty record |
+| `conforms(obj)` | `bool`: a record instance is a value record, meaning its type is a value record type and every field conforms |
 | `substitutable(a, b, /)` | `bool`: same exact record type and substitutable fields |
 
 `FieldInfo` is a named tuple with `name`, `annotation`, `kind`, `default`,
 and `factory`. `kind` is `"value"` or `"ordinary"`. Absent annotation,
-default, or factory entries use an internal missing sentinel; there is no
-public sentinel API. Do not interpret `None` as missing. `FieldInfo` is
+default, or factory entries are `grail.MISSING`; compare with `is`, and do
+not interpret `None` as missing. `FieldInfo` is
 available as `grail.FieldInfo`, but is not in `grail.__all__`.
+
+`grail.Record` is a virtual base class of every record type. Records do not
+inherit from it, but `isinstance` and `issubclass` report them, so a generic
+can register it to handle any record. It cannot be instantiated or subclassed.
 
 The first and third functions require a record **type**. The second requires
 a record **instance**. `substitutable` requires two record instances; different
 record types return false. Invalid inputs raise `TypeError`.
-`is_value_record` does not report instance conformance. There is no public
-instance-conformance query.
+`is_value_record` does not report instance conformance; `conforms` does, and
+it needs a record instance.
+
+## Static typing
+
+`grail/__init__.pyi` states the API for type checkers. `record` is a
+`dataclass_transform`, so constructors and fields are checked. When checking
+for Python 3.13 or later, `replace` checks field names and value types through
+the `__replace__` that checkers synthesize; for earlier targets it accepts
+any keywords. A value whose type is a `TypeVar` bound to a record gets the
+bound back from `replace`, not the `TypeVar`.
 
 ## Generated behavior
 

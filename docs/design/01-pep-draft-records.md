@@ -66,7 +66,7 @@ Construction does not enforce value annotations or reject mismatches. It may ins
 
 ### Value types
 
-The initial value types are: `None`, `bool`, `int`, `float`, `complex`, `str`, `bytes`; `frozenset` whose declared element type is a value type; value records; unions whose members are all value types (`Point | None`, `int | str`); tuples whose declared element types are value types; and, once they exist, the persistent map, set and vector (with value-typed elements) from the `grail` package. `int`, `float` and `complex` keep Python semantics; an implementation may unbox them invisibly. Recursive value records are allowed; the runtime may store an internal pointer, which has no observable effect.
+The initial value types are: `None`, `bool`, `int`, `float`, `complex`, `str`, `bytes`; `frozenset` whose declared element type is a value type; value records; unions whose members are all value types (`Point | None`, `int | str`); tuples whose declared element types are value types; `Literal` of `None`, `bool`, `int`, `str` or `bytes` members, which conforms by type rather than by membership; `Annotated[T, ...]` of a value type `T`; `type` aliases of value types; and, once they exist, the persistent map, set and vector (with value-typed elements) from the `grail` package. `int`, `float` and `complex` keep Python semantics; an implementation may unbox them invisibly. Recursive value records are allowed; the runtime may store an internal pointer, which has no observable effect.
 
 ### Defaults
 
@@ -144,7 +144,26 @@ Records add no magic attributes for tooling. Instead:
 
 - `grail.record_fields(R)` returns field metadata for a record type: names, annotations, kinds, defaults;
 - `grail.record_values(r)` returns an ordered snapshot mapping, not a live view;
-- `grail.is_value_record(R)` reports whether every field is a value field.
+- `grail.is_record(obj)` reports whether an object is a record type;
+- `grail.is_value_record(R)` reports whether every field is a value field;
+- `grail.conforms(r)` reports whether an instance is a value record;
+- `grail.Record` is a virtual base class of every record type, the dispatch key for "any record";
+- `grail.MISSING` marks an absent default, factory or annotation in field metadata.
+
+Validation and serialization libraries need no more than this. A prototype that decodes JSON into records through `pydantic_core` is about 200 lines.
+
+### Static typing
+
+`record` is a `dataclass_transform`, so checkers verify construction and field access. `replace` needs no special case in checkers. A stub ties its keywords to the type of the first argument through the `__replace__` that checkers already synthesize for `dataclass_transform` classes:
+
+```python
+class SupportsReplace[**P, R](Protocol):
+    def __replace__(self, *args: P.args, **kwargs: P.kwargs) -> R: ...
+
+def replace[**P, R](obj: SupportsReplace[P, R], /, *args: P.args, **kwargs: P.kwargs) -> R: ...
+```
+
+The typing specification should state that synthesized `__replace__`. It is not checked by mypy below Python 3.13, and a `TypeVar`-typed argument gets its bound back rather than the `TypeVar`.
 
 ## Backwards compatibility
 

@@ -31,6 +31,7 @@ endif
 
 py.install_sources(
   'src/grail/__init__.py',
+  'src/grail/__init__.pyi',
   'src/grail/_atom.py',
   'src/grail/_core.py',
   'src/grail/_numvec.py',

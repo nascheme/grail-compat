@@ -41,6 +41,14 @@ NATIVE=/path/to/cpython-grail/build/python
 uv run --no-project --python "$NATIVE" python -m unittest discover -s tests -p 'test_grail*.py'
 ```
 
+The stub `src/grail/__init__.pyi` is the static API. `tests/typecheck/sample.py`
+marks each error it should produce, so a lost check fails as an unused ignore:
+
+```sh
+MYPYPATH=src uvx --with typing_extensions mypy --strict --warn-unused-ignores \
+    --python-version 3.13 tests/typecheck/sample.py
+```
+
 Shared C map/set code is edited in `src/grail/_c/`, not in prototype copies.
 From grail-compat, synchronize with:
 

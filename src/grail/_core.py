@@ -24,6 +24,8 @@ import operator as _operator
 import struct as _struct
 import sys as _sys
 import threading as _threading
+import types as _types
+import typing as _typing
 
 backend = "shim"
 
@@ -725,7 +727,8 @@ class Generic:
             if args:
                 first = args[0]
             elif self._first_name in kwargs:
-                first = kwargs[self._first_name]
+                raise TypeError(f"dispatch argument {self._first_name!r} "
+                                "must be positional")
             else:
                 return self._fallback(*args, **kwargs)
             state = self._state
@@ -754,6 +757,12 @@ class Generic:
         override = bool(override)
         if not callable(func):
             raise TypeError("implementation must be callable")
+        if (self._arity == 1 and
+                _typing.get_origin(dispatch) in (_typing.Union, _types.UnionType)):
+            # One registration per member, as functools.singledispatch does.
+            for member in _typing.get_args(dispatch):
+                self.register(member, func, override=override)
+            return func
         types = self._types(dispatch, "operator dispatch requires two types")
         if (self._central and all(_is_type(t) for t in types)
                 and all(_is_static(t) for t in types)):

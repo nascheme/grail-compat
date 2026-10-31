@@ -25,9 +25,15 @@ The original body is the fallback, so decide whether unsupported values
 should produce a result or raise an error. Only the first argument's type
 selects the implementation. Additional annotations do not add multiple dispatch.
 
-Keep parameter names, kinds and default presence unchanged. For example,
-renaming `prefix` to `label` is not allowed even if you normally call it
-positionally. Default values may differ, but doing so can surprise callers.
+Pass the dispatch argument positionally. An implementation may name that
+parameter as it likes, so an existing function can be registered without a
+wrapper. Keep the other parameters' names, kinds and default presence
+unchanged. For example, renaming `prefix` to `label` is not allowed even if
+you normally call it positionally. Default values may differ, but doing so
+can surprise callers.
+
+A union registers each of its members, with `@describe.impl` on
+`def _(obj: int | float, prefix=""):` or with `describe.register(int | float, f)`.
 
 Exact type registration wins. Ordinary subclasses then use MRO and virtual
 ABC resolution like `functools.singledispatch`. Ambiguous unrelated ABCs raise

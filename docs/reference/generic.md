@@ -18,15 +18,15 @@ The original function is its fallback.
     >>> @label.impl
     ... def _(obj: int, suffix="!"):
     ...     return str(obj) + suffix
-    >>> label(obj=3, suffix="?")
+    >>> label(3, suffix="?")
     '3?'
 
 ## Creation and dispatch
 
 `generic(fallback)` returns a callable Generic object. The fallback needs a
 first parameter that accepts a positional argument; otherwise creation raises
-`TypeError`. Ordinary generics also dispatch when the first argument is
-passed by its parameter name. Other arguments do not affect selection.
+`TypeError`. The dispatch argument is positional: passing it by its parameter
+name raises `TypeError`. Other arguments do not affect selection.
 
 Selection is exact type first, then MRO and applicable virtual ABCs using
 `functools.singledispatch` resolution rules, then fallback. Unrelated ambiguous
@@ -47,13 +47,18 @@ duplicate or invalid call arguments are rejected by the selected callable.
 | `pair` | Read-only bool; false for user-created generics |
 | `__name__` | Read-only fallback name |
 
-`register` needs a type and callable. A duplicate exact registration raises
+`register` needs a type and callable. On a single-dispatch generic, a union
+such as `int | str` makes one registration per member, in order, so `version`
+advances by one for each, and a failing member leaves earlier ones registered.
+Registering `grail.Record` covers every record type. A duplicate exact registration raises
 `TypeError` unless `override=True`. `override` also permits a new registration.
 `impl` needs an annotated dispatch parameter. Unresolvable annotations may
 raise `NameError`; non-types raise `TypeError`. Signature introspection may
 raise `ValueError` for callables without an inspectable signature.
 
-Implementations preserve the fallback's parameter names, parameter kinds,
+An implementation's first parameter takes the dispatch argument, so it must
+accept a positional argument but may have any name. The remaining parameters
+preserve the fallback's parameter names, parameter kinds,
 and presence or absence of defaults. Default **values** and annotations need
 not match. Additional parameters are not allowed just because they are
 optional. Violations raise `TypeError` at registration. Callbacks' exceptions

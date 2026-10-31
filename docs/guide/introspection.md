@@ -25,13 +25,17 @@ Neither requires access to private type attributes.
     2
 
 Each `FieldInfo` has `name`, `annotation`, `kind`, `default`, and `factory`.
-Entries keep declaration order. Absent values use a private sentinel, not
-None; there is no public sentinel contract. A values snapshot contains the
+Entries keep declaration order. Absent values are `grail.MISSING`, not
+None, so a field is required when both `default` and `factory` are
+`MISSING`. A values snapshot contains the
 original child references, so changing a mutable child still changes that
 child.
 
 Pass a type to `record_fields` and `is_value_record`, and an instance to
-`record_values`. Invalid arguments raise `TypeError`. The metadata reflects
+`record_values` and `conforms`. Invalid arguments raise `TypeError`.
+`is_record(obj)` tests for a record type and accepts anything. To handle any
+record in a generic function, register `grail.Record`, a virtual base class of
+every record type. The metadata reflects
 the original declaration, not later edits to a source annotation dictionary.
 
 [Reference](../reference/records.md).

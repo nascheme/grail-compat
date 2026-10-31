@@ -30,7 +30,7 @@ def _(obj: MyType, protocol=5, *, fix_imports=True):
     ...
 ```
 
-The decorated function's body is the fallback. An implementation must preserve the generic's call shape; the annotation on its first parameter is the dispatch type, and its other parameters follow the generic's signature.
+The decorated function's body is the fallback. An implementation must preserve the generic's call shape; the annotation on its first parameter is the dispatch type, and its other parameters follow the generic's signature. The dispatch argument is positional, in calls as well as declarations: passing it by keyword raises `TypeError`, so implementations may name that parameter freely and an existing function can be registered without a wrapper. A union annotation (`int | str`) registers each member.
 
 ### Registration and override
 

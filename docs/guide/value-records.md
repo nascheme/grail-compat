@@ -23,7 +23,9 @@ such as reuse by deepcopy, applies.
 
 Today the scalar value types are None, bool, int, float, str and bytes.
 You can nest already-defined value record types, unions of value types,
-and typed tuples. `object`, lists, complex numbers, frozensets, Atoms and
+and typed tuples. `Literal` of scalars, `Annotated[T, ...]` and `type` aliases
+count as the types they stand for, so a constraint or a named alias does not
+cost a field its value status. `object`, lists, complex numbers, frozensets, Atoms and
 persistent collections are ordinary fields today. A persistent collection
 can still be an excellent shared snapshot; its annotation just does not
 make its containing record a value record yet.
@@ -31,12 +33,15 @@ make its containing record a value record yet.
 Conformance uses exact types. `Sample((1,))` stores an int unchanged and does
 not conform to `tuple[float, ...]`. Neither construction nor replacement
 raises for that mismatch. `is_value_record` inspects the type declaration,
-not a particular instance. There is no public conformance query.
+not a particular instance; `conforms` asks about an instance.
 
     >>> from copy import deepcopy
+    >>> from grail import conforms
     >>> sample = Sample((1.0, 2.0))
     >>> deepcopy(sample) is sample
     True
+    >>> conforms(sample), conforms(Sample((1, 2)))
+    (True, False)
 
 Ordinary fields give shallow immutability only. A list inside a record still
 needs its own synchronization when shared. Prefer immutable children and

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="admonition warning" role="note">
+    <p class="admonition-title">Experimental prototype — not for production use</p>
+    <p>Grail is an experimental prototype. Its design and APIs may change,
+    and its implementations may contain bugs. Do not use it for production
+    or anything you need to rely on. It is being shared so people can test
+    it and provide feedback on the design.</p>
+  </div>
+  {{ super() }}
+{% endblock %}

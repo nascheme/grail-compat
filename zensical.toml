@@ -6,12 +6,9 @@ nav = [
 {"Why Grail?" = "why-grail.md"},
 {"Getting started" = "getting-started.md"},
 {"Tutorial" = [
-{"Tutorial: a small shop" = "tutorial/index.md"},
-{"1. Describe an item" = "tutorial/1-records.md"},
-{"2. Describe items with a generic" = "tutorial/2-generic-functions.md"},
-{"3. Add stock with an operator" = "tutorial/3-operators.md"},
-{"4. Store inventory snapshots" = "tutorial/4-persistent-collections.md"},
-{"5. Coordinate stock updates" = "tutorial/5-threads-and-atoms.md"}
+{"1. Values and workspace versions" = "tutorial/index.md"},
+{"2. Extend the checker" = "tutorial/checking.md"},
+{"3. Check snapshots concurrently" = "tutorial/concurrency.md"}
 ]},
 {"Guide" = [
 {"Declare and use records" = "guide/records.md"},
@@ -67,5 +64,6 @@ nav = [
 ]
 
 [project.theme]
+custom_dir = "overrides"
 variant = "modern"
 language = "en"

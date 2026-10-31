@@ -24,7 +24,7 @@ The rendered docs site is https://python.ca/cpython-grail.
 
 Read [Why Grail?](docs/why-grail.md) for the motivation, then start with
 [Getting started](docs/getting-started.md) or the
-[shop tutorial](docs/tutorial/index.md). The [user documentation](docs/index.md)
+[document checker tutorial](docs/tutorial/index.md). The [user documentation](docs/index.md)
 also includes task guides, a hand-written API reference, and benchmark
 walkthroughs.
 

@@ -47,7 +47,7 @@ arbitrary objects.
 
 - [Why Grail?](why-grail.md) Faster code, better scaling, and fewer opportunities for races.
 - [Get started](getting-started.md) with a local installation.
-- [Follow the tutorial](tutorial/index.md) to build a small inventory tracker.
+- [Follow the tutorial](tutorial/index.md) to build a small document checker.
 - [Declare records](guide/records.md), [extend operations](guide/generic-functions.md),
   or [share snapshots](guide/concurrency.md).
 - Use the [records reference](reference/records.md),

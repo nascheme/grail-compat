@@ -135,7 +135,7 @@ want to spread across threads. Start with one part of your program, keep its
 behavior tests, and measure on the native runtime before drawing performance
 conclusions. Ordinary classes and local mutation remain useful tools.
 
-[Get started](getting-started.md), follow the [shop tutorial](tutorial/index.md),
+[Get started](getting-started.md), follow the [document checker tutorial](tutorial/index.md),
 or read the [concurrency guide](guide/concurrency.md). The
 [ray tracer](examples/raytrace.md) shows shared immutable input; the
 [aggregate example](examples/aggregate.md) shows private work followed by a merge.

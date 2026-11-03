@@ -11,11 +11,11 @@ sources:
 A generic selects an implementation using the type of its first argument.
 The original function is its fallback.
 
-    >>> from grail import generic
+    >>> from grail import generic, generic_impl
     >>> @generic
     ... def label(obj, suffix="!"):
     ...     return "unknown" + suffix
-    >>> @label.impl
+    >>> @generic_impl(label)
     ... def _(obj: int, suffix="!"):
     ...     return str(obj) + suffix
     >>> label(3, suffix="?")
@@ -23,7 +23,10 @@ The original function is its fallback.
 
 ## Creation and dispatch
 
-`generic(fallback)` returns a callable Generic object. The fallback needs a
+`generic(fallback)` returns a callable Generic object. The type stub declares
+it as returning `fallback` unchanged, so type checkers check calls against the
+fallback's signature, including its type parameters, and see none of the
+Generic members below; use the module functions for those. The fallback needs a
 first parameter that accepts a positional argument; otherwise creation raises
 `TypeError`. The dispatch argument is positional: passing it by its parameter
 name raises `TypeError`. Other arguments do not affect selection.
@@ -33,26 +36,46 @@ Selection is exact type first, then MRO and applicable virtual ABCs using
 ABC matches raise `RuntimeError`. Dispatch keys use type identity. Missing,
 duplicate or invalid call arguments are rejected by the selected callable.
 
+## Module functions
+
+Each takes the generic `op` first. It must be a Generic object (from
+`generic`, `grail.repr`, `grail.eq`, `grail.hash` or `grail.ops`); anything
+else raises `TypeError`.
+
+| Function | Contract |
+| --- | --- |
+| `generic_impl(op)(func)` | Decorator; infer dispatch from the first parameter's evaluated annotation; return `func` |
+| `generic_register(op, dispatch, func)` | Register callable for a type; return `func` |
+| `generic_override(op)(func)` | Like `generic_impl`, but permit replacement |
+| `generic_override(op, dispatch, func)` | Like `generic_register`, but permit replacement |
+| `generic_dispatch(op, dispatch)` | Resolve a type without calling; return implementation or fallback |
+| `generic_fallback(op)` | The original callable |
+| `generic_version(op)` | Integer, starts at zero and increments on each successful registration or override |
+| `is_generic(value)` | Whether `value` is a Generic object; never raises |
+
 ## Generic object
+
+The functions delegate to these members, which remain available at runtime.
 
 | Member | Contract |
 | --- | --- |
-| `register(dispatch, func, override=False)` | Register callable for a type; return `func` |
-| `impl(func, /)` | Decorator; infer dispatch from the first parameter's evaluated annotation; return `func` |
-| `override(func)` | Like `impl`, but permit replacement |
-| `override(dispatch, func)` | Explicit replacement; return `func` |
-| `dispatch(dispatch, /)` | Resolve a type without calling; return implementation or fallback |
-| `fallback` | Read-only original callable |
-| `version` | Read-only integer, starts at zero and increments on each successful registration or override |
+| `register(dispatch, func, override=False)` | `generic_register`, or `generic_override` when `override` is true |
+| `impl(func, /)` | `generic_impl(op)(func)` |
+| `override(func)` | `generic_override(op)(func)` |
+| `override(dispatch, func)` | `generic_override(op, dispatch, func)` |
+| `dispatch(dispatch, /)` | `generic_dispatch` |
+| `fallback` | Read-only; `generic_fallback` |
+| `version` | Read-only; `generic_version` |
 | `pair` | Read-only bool; false for user-created generics |
 | `__name__` | Read-only fallback name |
 
-`register` needs a type and callable. On a single-dispatch generic, a union
+Registration needs a type and callable. On a single-dispatch generic, a union
 such as `int | str` makes one registration per member, in order, so `version`
 advances by one for each, and a failing member leaves earlier ones registered.
 Registering `grail.Record` covers every record type. A duplicate exact registration raises
-`TypeError` unless `override=True`. `override` also permits a new registration.
-`impl` needs an annotated dispatch parameter. Unresolvable annotations may
+`TypeError`; `generic_override` permits replacement and also a new
+registration. `generic_impl` and the decorator form of `generic_override` need
+an annotated dispatch parameter. Unresolvable annotations may
 raise `NameError`; non-types raise `TypeError`. Signature introspection may
 raise `ValueError` for callables without an inspectable signature.
 
@@ -74,8 +97,8 @@ A racing call sees a consistent old or new registry snapshot. User callbacks
 and ABC resolution can run arbitrary code; this does not make their bodies
 thread-safe. See [concurrency](../guide/concurrency.md).
 
-For binary operators, `dispatch` is an exact `(left_type, right_type)` tuple,
-`pair` is true, and inference reads two annotations. These objects are supplied
+For binary operators, the dispatch key is an exact `(left_type, right_type)`
+tuple, `pair` is true, and inference reads two annotations. These objects are supplied
 by `grail.ops`, not by a public multiple-dispatch constructor.
 
 Guide: [generic functions](../guide/generic-functions.md).

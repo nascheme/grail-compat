@@ -4,7 +4,7 @@ From the grail-compat checkout: uv run docs/tutorial/workspace.py
 Or run with a native Grail interpreter, without installing grail-compat.
 """
 
-from grail import Atom, PMap, Pool, generic, record, replace
+from grail import Atom, PMap, Pool, generic, generic_impl, record, replace
 
 
 @record
@@ -30,7 +30,7 @@ def check(document, workspace):
     raise TypeError(f"unsupported document type: {type(document).__name__}")
 
 
-@check.impl
+@generic_impl(check)
 def _(document: Page, workspace):
     problems = []
     if not document.text.strip():
@@ -41,7 +41,7 @@ def _(document: Page, workspace):
     return tuple(problems)
 
 
-@check.impl
+@generic_impl(check)
 def _(document: Redirect, workspace):
     if document.target not in workspace:
         return (f"missing redirect target: {document.target}",)

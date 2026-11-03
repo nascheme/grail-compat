@@ -46,11 +46,11 @@ page and the workspace snapshot in which to interpret its links.
 Define a generic function for that operation, with an explicit error for
 unsupported document types:
 
-    >>> from grail import generic
+    >>> from grail import generic, generic_impl
     >>> @generic
     ... def check(document, workspace):
     ...     raise TypeError(f"unsupported document type: {type(document).__name__}")
-    >>> @check.impl
+    >>> @generic_impl(check)
     ... def _(document: Page, workspace):
     ...     problems = []
     ...     if not document.text.strip():
@@ -64,7 +64,7 @@ unsupported document types:
     >>> check(working["home"], working)
     ()
 
-`@check.impl` registers an implementation using the first parameter's
+`@generic_impl(check)` registers an implementation using the first parameter's
 annotation. Calling `check` chooses an implementation from the type of
 `document`; the second argument supplies context but does not participate in
 dispatch. Keep parameter names and calling conventions consistent with the
@@ -120,7 +120,7 @@ its destination must exist instead.
     >>> @record
     ... class Redirect:
     ...     target: str
-    >>> @check.impl
+    >>> @generic_impl(check)
     ... def _(document: Redirect, workspace):
     ...     if document.target not in workspace:
     ...         return (f"missing redirect target: {document.target}",)

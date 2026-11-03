@@ -6,7 +6,7 @@ Oct 25, 2026 · @Neil Schemenauer
 
 ## Abstract
 
-This PEP adds generic functions: open protocols that dispatch on the type of their first argument, defined and extended with decorators (`@grail.generic`, `@g.impl`, `@g.override`). Any package may extend a generic function with implementations for types it does not own, including builtin types. This openness does not permit replacing protected builtin protocol behavior. Operators get exact-pair dispatch on both operand types. Record types get their `repr`, equality, hashing, ordering and operators through generic functions, so this PEP must be approved together with the Records PEP. A generic function is a C-level object with a versioned dispatch table that the VM can specialize on; no new syntax is added.
+This PEP adds generic functions: open protocols that dispatch on the type of their first argument, defined with the `@grail.generic` decorator and extended with `@grail.generic_impl(g)` and `@grail.generic_override(g)`. Any package may extend a generic function with implementations for types it does not own, including builtin types. This openness does not permit replacing protected builtin protocol behavior. Operators get exact-pair dispatch on both operand types. Record types get their `repr`, equality, hashing, ordering and operators through generic functions, so this PEP must be approved together with the Records PEP. A generic function is a C-level object with a versioned dispatch table that the VM can specialize on; no new syntax is added.
 
 ## Motivation and rationale
 
@@ -25,7 +25,7 @@ No syntax is needed for speed. CPython's specializer works on what a call's targ
 def serialize(obj, protocol=5, *, fix_imports=True):
     raise TypeError(f"cannot serialize {type(obj).__name__}")   # fallback body
 
-@serialize.impl
+@grail.generic_impl(serialize)
 def _(obj: MyType, protocol=5, *, fix_imports=True):
     ...
 ```
@@ -38,17 +38,17 @@ Any package may register an implementation for a type it does not own, subject t
 
 ```python
 # third_party_plugin.py
-@serialize.impl
+@grail.generic_impl(serialize)
 def _(obj: ForeignType, protocol=5, *, fix_imports=True): ...
 
-@serialize.override              # intentional replacement of an existing impl
+@grail.generic_override(serialize)   # intentional replacement of an existing impl
 def _(obj: ForeignType, protocol=5, *, fix_imports=True): ...
 
-serialize.register(ForeignType, func)    # plain-call equivalents for plugins
-serialize.override(ForeignType, func)
+grail.generic_register(serialize, ForeignType, func)   # plain-call equivalents
+grail.generic_override(serialize, ForeignType, func)
 ```
 
-A duplicate exact registration is an error unless made with `override`. Registration and override bump the generic's version, so dispatch caches invalidate. A generic is never sealed implicitly when imports finish; optional explicit sealing may be investigated if measurements show a payoff.
+A duplicate exact registration is an error unless made with `generic_override`. Registration and override bump the generic's version, so dispatch caches invalidate. A generic is never sealed implicitly when imports finish; optional explicit sealing may be investigated if measurements show a payoff.
 
 ### Protected builtin behavior
 
@@ -77,13 +77,13 @@ This matches `functools.singledispatch` expectations for ordinary classes. `func
 Operators are the one deliberate exception to single dispatch: an operator implementation dispatches on the exact pair of operand types.
 
 ```python
-@grail.ops.add.impl
+@grail.generic_impl(grail.ops.add)
 def _(a: Vec, b: Vec) -> Vec: ...
 
-@grail.ops.add.impl
+@grail.generic_impl(grail.ops.add)
 def _(a: Vec, b: float) -> Vec: ...
 
-@grail.ops.add.impl
+@grail.generic_impl(grail.ops.add)
 def _(a: float, b: Vec) -> Vec: ...
 ```
 
@@ -106,7 +106,7 @@ The prototype's supported central surface is `+`, `-`, `*`, `/` and augmented eq
 Records have no methods, so their type slots for `repr`, `==`, hashing, ordering and the numeric operators call generic functions. Every record type gets the default implementations (generated `repr`, structural `==` and hash, as the Records PEP specifies); registering an implementation for a record type replaces the default:
 
 ```python
-@grail.repr.impl                   # hook names are open
+@grail.generic_impl(grail.repr)    # hook names are open
 def _(p: Point) -> str:
     return f"Point({p.x}, {p.y})"
 ```
@@ -155,7 +155,7 @@ Write behaviour as functions that dispatch on the type of their first argument, 
 
 ## Open issues
 
-- **Type checking.** Checkers handle `singledispatch.register` poorly. A typing spec, not per-checker plugins, should let checkers type calls to a generic from its registered implementations.
+- **Type checking.** Checkers handle `singledispatch.register` poorly. The prototype's stub types `@generic` as returning the fallback unchanged, so calls check against the fallback's signature and a fallback's own type parameters survive (in mypy, pyright and Pyrefly; typing the result as a parameterized `Generic[P, R]` object loses them in Pyrefly). That is why registration and introspection are module functions (`generic_impl`, `generic_register`, `generic_override`, `generic_dispatch`, `generic_fallback`, `generic_version`, `is_generic`) rather than attributes checkers can see. Implementations are not checked against the fallback, since each narrows the dispatch parameter; a typing spec, not per-checker plugins, should cover that and let checkers type calls from the registered implementations.
 - **Hook names and semantics** for record `repr`, `==`, hash and ordering, and how far builtins such as `iter`, `bool`, `format` and `copy.replace` participate.
 - **Protected builtin surface.** Specify the protected builtin types and protocol hooks, including extension types that provide the same immutability guarantees. Protection must be defined explicitly rather than inferred solely from whether a type's namespace is immutable.
 - **Operator surface.** Comparison-operator details remain open. Protecting builtin pairs also lets the interpreter preserve builtin arithmetic fast paths without an extra dispatch guard: in the prototype that guard slowed unchanged numeric code by up to 14% once any operator was registered.

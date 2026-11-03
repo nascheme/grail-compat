@@ -19,7 +19,7 @@ Try it on stock CPython 3.10+ with grail-compat or on the native CPython
 prototype (the `grail` branch of [github.com/nascheme/cpython](https://github.com/nascheme/cpython/tree/grail)). The API and design are still changing; this is not released Python
 language functionality.
 
-    >>> from grail import record, replace, generic, PMap, Atom
+    >>> from grail import record, replace, generic, generic_impl, PMap, Atom
     >>> @record
     ... class Item:
     ...     name: str
@@ -27,7 +27,7 @@ language functionality.
     >>> @generic
     ... def label(obj):
     ...     return "unknown"
-    >>> @label.impl
+    >>> @generic_impl(label)
     ... def _(obj: Item):
     ...     return f"{obj.name}: {obj.count}"
     >>> stock = Atom(PMap({"tea": Item("tea", 2)}))

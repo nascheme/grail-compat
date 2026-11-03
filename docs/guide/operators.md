@@ -11,7 +11,7 @@ sources:
 Register operators for exact operand pairs, or derive element-wise arithmetic
 for a record whose fields are all annotated float.
 
-    >>> from grail import record, ops
+    >>> from grail import record, ops, generic_impl
     >>> @record(deriving="+-*/")
     ... class Vec:
     ...     x: float
@@ -28,7 +28,7 @@ For other meanings, register explicitly:
     >>> @record
     ... class Count:
     ...     n: int
-    >>> @ops.add.impl
+    >>> @generic_impl(ops.add)
     ... def _(a: Count, b: Count):
     ...     return Count(a.n + b.n)
     >>> Count(2) + Count(3)

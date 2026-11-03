@@ -11,14 +11,14 @@ The ray tracer separates points, directions, shapes and surfaces into records.
 Exact-pair arithmetic expresses geometric rules; generics handle shape and
 surface polymorphism. This small version shows why the type distinction matters.
 
-    >>> from grail import record, ops
+    >>> from grail import record, ops, generic_impl
     >>> @record
     ... class Point:
     ...     x: float
     >>> @record
     ... class Vec:
     ...     x: float
-    >>> @ops.sub.impl
+    >>> @generic_impl(ops.sub)
     ... def _(a: Point, b: Point):
     ...     return Vec(a.x - b.x)
     >>> Point(4.0) - Point(1.0)

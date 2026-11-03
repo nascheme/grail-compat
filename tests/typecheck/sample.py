@@ -38,7 +38,7 @@ def area(shape: object, scale: float = 1.0) -> float:
     raise TypeError
 
 
-@area.impl
+@grail.generic_impl(area)
 def _(shape: Point, scale: float = 1.0) -> float:
     return shape.x * scale
 
@@ -47,8 +47,32 @@ assert_type(area(p), float)
 assert_type(area(p, 2.0), float)
 area(p, "no")  # type: ignore[arg-type]
 area()  # type: ignore[call-arg]
-area.register(Vec, lambda v, scale=1.0: 0.0)
-assert_type(area.version, int)
+grail.generic_register(area, Vec, lambda v, scale=1.0: 0.0)
+assert_type(grail.generic_version(area), int)
+assert_type(grail.generic_fallback(area)(p), float)
+area.impl  # type: ignore[attr-defined]
+
+
+@grail.generic_override(area)
+def _(shape: Vec, scale: float = 1.0) -> float:
+    return shape.x
+
+
+def vec_area(shape: Vec, scale: float = 1.0) -> float:
+    return shape.x
+
+
+assert_type(grail.generic_override(area, Vec, vec_area)(Vec(1.0)), float)
+
+
+@generic
+def step[S](shape: object, state: S, dt: float) -> S:
+    return state
+
+
+assert_type(step(p, 3, 0.5), int)
+assert_type(step(p, "s", 0.5), str)
+assert_type(grail.repr.version, int)
 
 draft = mutate(p)
 draft.x += 1.0

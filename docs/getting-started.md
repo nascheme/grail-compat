@@ -14,14 +14,14 @@ sources:
 Install the local grail-compat checkout to try Grail without a custom
 interpreter. The distribution is named grail-compat; the import is `grail`.
 
-    >>> from grail import record, generic
+    >>> from grail import record, generic, generic_impl
     >>> @record
     ... class Greeting:
     ...     name: str
     >>> @generic
     ... def greet(obj):
     ...     return "Hello"
-    >>> @greet.impl
+    >>> @generic_impl(greet)
     ... def _(obj: Greeting):
     ...     return "Hello, " + obj.name
     >>> greet(Greeting("Ann"))

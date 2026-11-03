@@ -15,7 +15,7 @@ protocols. The record type itself stays immutable.
     >>> @grail.record
     ... class User:
     ...     name: str
-    >>> @grail.repr.impl
+    >>> @grail.generic_impl(grail.repr)
     ... def _(obj: User):
     ...     return "User<" + obj.name + ">"
     >>> repr(User("ann"))

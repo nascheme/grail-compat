@@ -52,8 +52,8 @@ default `grail.eq` and `grail.hash` require a record first argument.
 Use two positional operands for direct binary calls. On a miss the fallback
 is the matching `operator` function and normal Python slot behavior applies.
 Binary registration needs a two-type tuple, or two annotated dispatch
-parameters with `@ops.add.impl`. Duplicate registrations require explicit
-`override`. There is no MRO resolution, commutative inference, or comparison
+parameters with `@generic_impl(ops.add)`. Duplicate registrations require
+`generic_override`. There is no MRO resolution, commutative inference, or comparison
 operator registry. Register reversed pairs separately.
 
 Pairs of two protected builtin types, including pairs that normally fail,

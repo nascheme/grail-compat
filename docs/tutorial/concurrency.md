@@ -20,7 +20,7 @@ Continue in the same session, or run this compact setup in a fresh one. The
 <details markdown="1">
 <summary>Setup from parts 1 and 2</summary>
 
-    >>> from grail import record, replace, generic, PMap
+    >>> from grail import record, replace, generic, generic_impl, PMap
     >>> @record
     ... class Page:
     ...     title: str
@@ -36,7 +36,7 @@ Continue in the same session, or run this compact setup in a fresh one. The
     >>> @generic
     ... def check(document, workspace):
     ...     raise TypeError(f"unsupported document type: {type(document).__name__}")
-    >>> @check.impl
+    >>> @generic_impl(check)
     ... def _(document: Page, workspace):
     ...     problems = []
     ...     if not document.text.strip():
@@ -45,7 +45,7 @@ Continue in the same session, or run this compact setup in a fresh one. The
     ...         if target not in workspace:
     ...             problems.append(f"missing target: {target}")
     ...     return tuple(problems)
-    >>> @check.impl
+    >>> @generic_impl(check)
     ... def _(document: Redirect, workspace):
     ...     if document.target not in workspace:
     ...         return (f"missing redirect target: {document.target}",)

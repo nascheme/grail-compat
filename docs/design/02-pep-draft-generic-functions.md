@@ -56,7 +56,7 @@ Generic functions distinguish **extending an operation** from **replacing protec
 
 A user-defined generic may register implementations for builtin types. For example, a serialization protocol may define an implementation for `int`. Such registrations follow the ordinary duplicate-registration and explicit-override rules.
 
-Grail's hooks for existing Python protocols must preserve the protection provided by builtin types. A registration cannot replace `repr` or `hash` behavior for exact `int` instances, for example. Both registration and explicit `override` raise `TypeError` when they would replace protected behavior; `override` is not an escape hatch.
+Grail's hooks for existing Python protocols must preserve the protection provided by builtin types. A registration cannot replace `repr` or `hash` behavior for exact `int` instances, for example. Both registration and explicit `generic_override` raise `TypeError` when they would replace protected behavior; `generic_override` is not an escape hatch.
 
 Protection applies to effective dispatch, not just exact registry entries. An implementation registered for `object` or an ABC cannot intercept a protected builtin operation through inherited dispatch.
 
@@ -135,7 +135,7 @@ The PEP adds a module and decorators; no syntax changes, and `functools.singledi
 
 ## How to teach this
 
-Write behaviour as functions that dispatch on the type of their first argument, the way `functools.singledispatch` already works, then register implementations for your types, or for types you do not own. Use `override` when you mean to replace someone else's implementation.
+Write behaviour as functions that dispatch on the type of their first argument, the way `functools.singledispatch` already works, then register implementations for your types, or for types you do not own. Use `generic_override` when you mean to replace someone else's implementation.
 
 ## Reference implementation
 

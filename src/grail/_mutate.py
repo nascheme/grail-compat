@@ -25,7 +25,7 @@ from _thread import get_ident as _get_ident
 
 from . import PMap, PVector, record_fields, replace
 
-from ._core import _is_record_type
+from . import is_record as _is_record_type
 
 __all__ = ["mutate", "finish", "original"]
 

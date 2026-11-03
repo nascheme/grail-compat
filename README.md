@@ -9,14 +9,18 @@ CPython versions (3.10+).  It follows the semantics of the native prototype
 (the `grail` branch of https://github.com/nascheme/cpython); see
 the docstring in `src/grail/__init__.py` for the known deviations.
 
-On CPython 3.14+ the persistent `PMap` and `PSet` are the prototype's C
-implementation (`grail._pds_native`, built over a copy of CPython's HAMT in
-`src/grail/_c/`).  Everything else, and `PMap`/`PSet` on older versions, is
-pure Python.  `grail.pds_backend` is `"native"` or `"python"`; set
-`GRAIL_PURE=1` to force the pure-Python collections.
+On CPython 3.14+ two parts are C extensions built from `src/grail/_c/`:
+the persistent `PMap` and `PSet` (`grail._pds_native`, the prototype's
+implementation over a copy of CPython's HAMT) and the record core
+(`grail._core_native`: construction, conformance, field access, `==`,
+hash, repr and replace).  Everything else, and both of those on older
+versions, is pure Python.  `grail.pds_backend` and `grail.record_backend`
+are `"native"` or `"python"`; set `GRAIL_PURE=1` to force pure Python for
+both.
 
-The pure-Python parts add overhead the native runtime does not have, so
-timings taken with this package say nothing about Grail performance.
+Generic dispatch and the pure-Python parts add overhead the native runtime
+does not have, so timings taken with this package say little about Grail
+performance.
 
 ## Documentation
 
@@ -70,7 +74,8 @@ Leak and sanitizer checks for the C code, with a debug CPython
 
 ## Sharing code with cpython-grail
 
-`src/grail/_c/` is the single source for the prototype's `_grail_pds`
+`src/grail/_c/` (except `core.c`, the record core, which the prototype
+implements natively) is the single source for the prototype's `_grail_pds`
 module.  The same files build into the interpreter with `Py_BUILD_CORE`
 (module name `_grail_pds`, internal fast paths) and here as an extension
 (`grail._pds_native`).  Likewise `tests/test_grail*.py` are the prototype's

@@ -1,2 +1,2 @@
 option('native', type: 'feature', value: 'auto',
-       description: 'Build the C implementation of PMap and PSet (CPython 3.14+)')
+       description: 'Build the C implementations of PMap, PSet and the record core (CPython 3.14+)')

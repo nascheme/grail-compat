@@ -25,7 +25,8 @@ uv run --directory tests pytest
 GRAIL_PURE=1 uv run --directory tests pytest
 ```
 
-Use CPython 3.14+ and a compiler to exercise the native PMap/PSet extension.
+Use CPython 3.14+ and a compiler to exercise the native PMap/PSet and record
+core extensions; `GRAIL_PURE=1` runs the pure-Python implementations.
 The project builds with meson-python. Older Pythons build a pure-Python wheel;
 `-Csetup-args=-Dnative=disabled` disables the extension explicitly. See the
 checkout README for debug builds, sanitizer runs and leak tests.
@@ -50,6 +51,7 @@ MYPYPATH=src uvx --with typing_extensions mypy --strict --warn-unused-ignores \
 ```
 
 Shared C map/set code is edited in `src/grail/_c/`, not in prototype copies.
+`src/grail/_c/core.c` (the record core) is grail-compat only.
 From grail-compat, synchronize with:
 
 ```sh

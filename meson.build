@@ -7,8 +7,9 @@ project(
 
 py = import('python').find_installation(pure: false)
 
-# The native PMap/PSet need CPython 3.14+.  Without them (older Python, no
-# C compiler, or -Dnative=disabled) the package is pure Python.
+# The native PMap/PSet and record core need CPython 3.14+.  Without them
+# (older Python, no C compiler, or -Dnative=disabled) the package is pure
+# Python.
 native = get_option('native')
 if py.language_version().version_compare('< 3.14')
   native = native.disable_auto_if(true)
@@ -27,6 +28,13 @@ if build_native
     install: true,
     subdir: 'grail',
   )
+  py.extension_module(
+    '_core_native',
+    'src/grail/_c/core.c',
+    include_directories: include_directories('src/grail/_c'),
+    install: true,
+    subdir: 'grail',
+  )
 endif
 
 py.install_sources(
@@ -34,6 +42,7 @@ py.install_sources(
   'src/grail/__init__.pyi',
   'src/grail/_atom.py',
   'src/grail/_core.py',
+  'src/grail/_generic.py',
   'src/grail/_numvec.py',
   'src/grail/_parallel.py',
   'src/grail/_mutate.py',

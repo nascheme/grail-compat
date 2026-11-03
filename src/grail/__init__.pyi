@@ -26,6 +26,7 @@ _F = TypeVar("_F", bound=Callable[..., Any])
 
 backend: Final[str]
 pds_backend: Final[str]
+record_backend: Final[str]
 
 
 class _Missing: ...

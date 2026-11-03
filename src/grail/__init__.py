@@ -1,14 +1,17 @@
 """Compatibility implementation of the Project Grail API for CPython 3.10+.
 
 A close port of the native facade (cpython-grail/Lib/grail/__init__.py).
-The native ``_grail`` core is replaced by ``grail._core``; persistent
+The native ``_grail`` core (records and their protocol defaults) is
+replaced by ``grail._core_native``, a C extension, on CPython 3.14+, and by
+the pure-Python ``grail._core`` elsewhere; ``record_backend`` says which.
+Generic functions are Python in both (``grail._generic``).  Persistent
 collections, numeric vectors, atoms and the thread pool live in sibling
-modules.  On CPython
-3.14+ PMap and PSet are the prototype's C implementation
-(``grail._pds_native``, over a copy of CPython's HAMT); elsewhere, or with
-GRAIL_PURE=1 in the environment, they are pure Python (``grail._pds``);
-``pds_backend`` says which.  The shim
-follows the native semantics wherever pure Python can.  Known deviations:
+modules.  On CPython 3.14+ PMap and PSet are the prototype's C
+implementation (``grail._pds_native``, over a copy of CPython's HAMT);
+elsewhere they are pure Python (``grail._pds``); ``pds_backend`` says
+which.  GRAIL_PURE=1 in the environment selects the pure-Python core and
+collections.  The shim follows the native semantics wherever it can.  Known
+deviations:
 
   * Registered operator pairs are consulted only through record operator
     methods and direct grail.ops calls.  ``a + b`` for two non-record types
@@ -17,15 +20,17 @@ follows the native semantics wherever pure Python can.  Known deviations:
     into Python's usual TypeError instead of being returned.
   * Unary ops.neg/ops.abs without a registration raise TypeError (natively
     the fallback re-enters the record slot and recurses).
-  * Record type names carry no module prefix in error messages.
+  * Record type names carry no module prefix in Grail's own error messages
+    (CPython's, such as unsupported operands, have one with the C core).
   * Inherited generic dispatch is not cached: every call that misses the
     exact table runs the resolver (functools._find_impl).
-  * Hardening record types (immutable type, no subclassing, no
-    object.__new__) uses ctypes; without it those bypasses stay open.
+  * The pure-Python core hardens record types (immutable type, no
+    subclassing, no object.__new__) through ctypes; without it those
+    bypasses stay open.  The C core uses PyType_Freeze.
   * copy.replace exists only on 3.13+; grail.replace works everywhere.
 
-It adds Python-level overhead the native runtime does not have, so timings
-taken with it say nothing about Grail performance.
+Generic dispatch and the pure-Python parts add overhead the native runtime
+does not have, so timings taken with it say little about Grail performance.
 """
 
 import _thread
@@ -37,7 +42,6 @@ import types as _types
 import typing as _typing
 from collections import namedtuple as _namedtuple
 
-from . import _core
 from ._atom import Atom
 from ._pool import Pool
 from ._parallel import pmap, parallel_reduce
@@ -59,6 +63,22 @@ def _load_pds():
 
 
 PMap, PSet, pds_backend = _load_pds()
+
+
+def _load_core():
+    import os
+    if os.environ.get("GRAIL_PURE") != "1":
+        try:
+            from . import _core_native as core
+        except ImportError:
+            pass
+        else:
+            return core, "native"
+    from . import _core as core
+    return core, "python"
+
+
+_core, record_backend = _load_core()
 
 try:
     import annotationlib as _annotationlib  # 3.14+
@@ -298,6 +318,10 @@ def replace(obj, /, **changes):
     if not _core._is_record_type(cls):
         raise TypeError("replace() requires a Grail record")
     return cls.__replace__(obj, **changes)
+
+
+if record_backend == "native":
+    replace = _core.replace_record
 
 
 def record_fields(record_type):

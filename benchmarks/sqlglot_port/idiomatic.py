@@ -80,7 +80,7 @@ def map_children(node, function):
     raise TypeError(type(node))
 
 
-@map_children.impl
+@grail.generic_impl(map_children)
 def _map_expression(node: Expression, function):
     args = []
     changed = False
@@ -94,7 +94,7 @@ def _map_expression(node: Expression, function):
     return Expression(node.kind, tuple(args)) if changed else node
 
 
-@map_children.impl
+@grail.generic_impl(map_children)
 def _map_connector(node: And, function):
     left, right = function(node.left), function(node.right)
     if left is node.left and right is node.right:
@@ -102,18 +102,18 @@ def _map_connector(node: And, function):
     return type(node)(left, right)
 
 
-@map_children.impl
+@grail.generic_impl(map_children)
 def _map_or(node: Or, function):
     return _map_connector(node, function)
 
 
-@map_children.impl
+@grail.generic_impl(map_children)
 def _map_unary(node: Not, function):
     this = function(node.this)
     return node if this is node.this else type(node)(this)
 
 
-@map_children.impl
+@grail.generic_impl(map_children)
 def _map_paren(node: Paren, function):
     return _map_unary(node, function)
 

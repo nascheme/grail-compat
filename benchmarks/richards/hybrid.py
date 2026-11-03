@@ -154,7 +154,7 @@ def step(data, packet):
     raise TypeError(f"no task behaviour for {type(data).__name__}")
 
 
-@step.impl
+@grail.generic_impl(step)
 def _(data: IdleData, packet):
     d = data
     count = d.count - 1
@@ -165,7 +165,7 @@ def _(data: IdleData, packet):
     return IdleData((d.control // 2) ^ 0xD008, count), Release(I_DEVB)
 
 
-@step.impl
+@grail.generic_impl(step)
 def _(data: WorkerData, packet):
     w = data
     if packet is None:
@@ -180,7 +180,7 @@ def _(data: WorkerData, packet):
     return WorkerData(dest, count), Send(out)
 
 
-@step.impl
+@grail.generic_impl(step)
 def _(data: HandlerData, packet):
     h = data
     work_in, device_in = h.work_in, h.device_in
@@ -203,7 +203,7 @@ def _(data: HandlerData, packet):
             Send(copy.replace(dev, datum=work.data[i])))
 
 
-@step.impl
+@grail.generic_impl(step)
 def _(data: DeviceData, packet):
     d = data
     if packet is None:

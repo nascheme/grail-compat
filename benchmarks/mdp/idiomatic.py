@@ -237,12 +237,12 @@ def successors(node):
     raise TypeError(type(node))
 
 
-@successors.impl
+@grail.generic_impl(successors)
 def _choice_successors(node: Choice):
     return tuple(Opponent(node.state, action) for action in ("Dig", "Super Potion"))
 
 
-@successors.impl
+@grail.generic_impl(successors)
 def _opponent_successors(node: Opponent):
     state, action = node.state, node.action
     dist = defaultdict(Fraction)
@@ -261,7 +261,7 @@ def _opponent_successors(node: Opponent):
     return _ordered_distribution(dist)
 
 
-@successors.impl
+@grail.generic_impl(successors)
 def _pending_successors(node: Pending):
     dist = defaultdict(Fraction)
     for state, probability in apply_action(node.state, node.side, node.action).items():
@@ -269,7 +269,7 @@ def _pending_successors(node: Pending):
     return _ordered_distribution(dist)
 
 
-@successors.impl
+@grail.generic_impl(successors)
 def _outcome_successors(node: Outcome):
     return ()
 

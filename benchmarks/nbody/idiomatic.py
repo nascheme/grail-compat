@@ -65,17 +65,17 @@ class Body:
 # --------------------------------------------------------- vector algebra
 # Component-wise, matching the original's scalar code operation for operation.
 
-@ops.add.impl
+@grail.generic_impl(ops.add)
 def _(a: Vec3, b: Vec3) -> Vec3:
     return Vec3(a.x + b.x, a.y + b.y, a.z + b.z)
 
 
-@ops.sub.impl
+@grail.generic_impl(ops.sub)
 def _(a: Vec3, b: Vec3) -> Vec3:
     return Vec3(a.x - b.x, a.y - b.y, a.z - b.z)
 
 
-@ops.mul.impl
+@grail.generic_impl(ops.mul)
 def _(a: Vec3, k: float) -> Vec3:
     return Vec3(a.x * k, a.y * k, a.z * k)
 

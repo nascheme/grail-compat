@@ -82,18 +82,18 @@ class NativeTests(unittest.TestCase):
 
     def test_generic_dispatch_and_keywords(self):
         data = richards.DeviceData(None)
-        new, action = richards.step(data=data, packet=None)
+        new, action = richards.step(data, packet=None)
         self.assertIs(new, data)
         self.assertIs(action, richards.WAIT)
         point = raytrace.Point(0.0, 0.0, 0.0)
         surface = raytrace.SimpleSurface(raytrace.BLACK)
-        self.assertIs(raytrace.base_colour_at(surface=surface, p=point),
+        self.assertIs(raytrace.base_colour_at(surface, p=point),
                       raytrace.BLACK)
         normal = raytrace.Vec(0.0, 1.0, 0.0)
         shape = raytrace.Halfspace(point, normal)
-        self.assertIs(raytrace.normal_at(shape=shape, p=point), normal)
+        self.assertIs(raytrace.normal_at(shape, p=point), normal)
         ray = raytrace.Ray(point, normal)
-        self.assertEqual(raytrace.intersection_time(shape=shape, ray=ray), -1.0)
+        self.assertEqual(raytrace.intersection_time(shape, ray=ray), -1.0)
 
     def test_record_arithmetic(self):
         a = raytrace.Vec(1.0, 2.0, 3.0)

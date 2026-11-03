@@ -189,27 +189,27 @@ def sql_node(node, options, messages, arg_key):
     raise TypeError(type(node))
 
 
-@sql_node.impl
+@grail.generic_impl(sql_node)
 def _and(node: tree.And, options, messages, arg_key):
     return f"{_sql(node.left, options, messages, 'this')} AND {_sql(node.right, options, messages, 'expression')}"
 
 
-@sql_node.impl
+@grail.generic_impl(sql_node)
 def _or(node: tree.Or, options, messages, arg_key):
     return f"{_sql(node.left, options, messages, 'this')} OR {_sql(node.right, options, messages, 'expression')}"
 
 
-@sql_node.impl
+@grail.generic_impl(sql_node)
 def _not(node: tree.Not, options, messages, arg_key):
     return f"NOT {_sql(node.this, options, messages, 'this')}"
 
 
-@sql_node.impl
+@grail.generic_impl(sql_node)
 def _paren(node: tree.Paren, options, messages, arg_key):
     return f"({_sql(node.this, options, messages, 'this')})"
 
 
-@sql_node.impl
+@grail.generic_impl(sql_node)
 def _expression(node: tree.Expression, options, messages, arg_key):
     name = node.kind
 

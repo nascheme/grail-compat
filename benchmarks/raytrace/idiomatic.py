@@ -65,27 +65,27 @@ class Point:
     z: float
 
 
-@grail.ops.add.impl
+@grail.generic_impl(grail.ops.add)
 def _(a: Vec, b: Vec) -> Vec:
     return Vec(a.x + b.x, a.y + b.y, a.z + b.z)
 
 
-@grail.ops.sub.impl
+@grail.generic_impl(grail.ops.sub)
 def _(a: Vec, b: Vec) -> Vec:
     return Vec(a.x - b.x, a.y - b.y, a.z - b.z)
 
 
-@grail.ops.mul.impl
+@grail.generic_impl(grail.ops.mul)
 def _(a: Vec, k: float) -> Vec:
     return Vec(k * a.x, k * a.y, k * a.z)
 
 
-@grail.ops.add.impl
+@grail.generic_impl(grail.ops.add)
 def _(a: Point, b: Vec) -> Point:
     return Point(a.x + b.x, a.y + b.y, a.z + b.z)
 
 
-@grail.ops.sub.impl
+@grail.generic_impl(grail.ops.sub)
 def _(a: Point, b: Point) -> Vec:
     return Vec(a.x - b.x, a.y - b.y, a.z - b.z)
 
@@ -156,7 +156,7 @@ def normal_at(shape, p: Point) -> Vec:
     raise TypeError(f"not a shape: {type(shape).__name__}")
 
 
-@intersection_time.impl
+@grail.generic_impl(intersection_time)
 def _(shape: Sphere, ray: Ray) -> float | None:
     s = shape
     cp = s.centre - ray.point
@@ -167,12 +167,12 @@ def _(shape: Sphere, ray: Ray) -> float | None:
     return v - math.sqrt(discriminant)
 
 
-@normal_at.impl
+@grail.generic_impl(normal_at)
 def _(shape: Sphere, p: Point) -> Vec:
     return normalized(p - shape.centre)
 
 
-@intersection_time.impl
+@grail.generic_impl(intersection_time)
 def _(shape: Halfspace, ray: Ray) -> float | None:
     h = shape
     # The original's formula (see module docstring): ignores h.point.
@@ -180,7 +180,7 @@ def _(shape: Halfspace, ray: Ray) -> float | None:
     return 1 / -v if v else None
 
 
-@normal_at.impl
+@grail.generic_impl(normal_at)
 def _(shape: Halfspace, p: Point) -> Vec:
     return shape.normal
 
@@ -230,12 +230,12 @@ def base_colour_at(surface, p: Point) -> Colour:
     raise TypeError(f"not a surface: {type(surface).__name__}")
 
 
-@base_colour_at.impl
+@grail.generic_impl(base_colour_at)
 def _(surface: SimpleSurface, p: Point) -> Colour:
     return surface.colour
 
 
-@base_colour_at.impl
+@grail.generic_impl(base_colour_at)
 def _(surface: Checkerboard, p: Point) -> Colour:
     v = (p - ORIGIN) * (1.0 / surface.check_size)
     odd = (int(abs(v.x) + 0.5) + int(abs(v.y) + 0.5) + int(abs(v.z) + 0.5)) % 2
